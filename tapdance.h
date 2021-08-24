@@ -24,15 +24,18 @@
 
 // Tap dance declarations.
 enum {
-    CONTROL_SHIFT = 0,
+    CONTROL_SHIFT_LEFT = 0,
+    CONTROL_SHIFT_RIGHT,
 };
 
 // Aliases.
 enum {
-    C_S = CONTROL_SHIFT,
+    LCS = CONTROL_SHIFT_LEFT,
+    RCS = CONTROL_SHIFT_RIGHT,
 };
 
 // Tap dance definitions.
 qk_tap_dance_action_t tap_dance_actions[] = {
-    [CONTROL_SHIFT] = ACTION_TAP_DANCE_DOUBLE(KC_LCTL, KC_LSFT),
+    [CONTROL_SHIFT_LEFT]  = ACTION_TAP_DANCE_DOUBLE(KC_LCTL, KC_LSFT),
+    [CONTROL_SHIFT_RIGHT] = ACTION_TAP_DANCE_DOUBLE(KC_RCTL, KC_RSFT),
 };
