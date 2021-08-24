@@ -30,11 +30,11 @@
 # ifdef RGB_MATRIX_ENABLE
 
 // Global settings.
-#     define RGB_DISABLE_WHEN_USB_SUSPENDED  true                          // Disable lighting when suspended.
-#     define RGB_MATRIX_LED_FLUSH_LIMIT      (1000 / 60)                   // 24 FPS animations.
-#     define RGB_MATRIX_LED_PROCESS_LIMIT    ((DRIVER_LED_TOTAL + 4) / 5)  // Limit LED effects' overhead.
-#     define RGB_MATRIX_MAXIMUM_BRIGHTNESS   150                           // Max brightness (uint8_t, best if <= 150).
-#     define RGB_MATRIX_DISABLE_KEYCODES                                   // Disable default RGB controls.
+#     define RGB_DISABLE_WHEN_USB_SUSPENDED  true                    // Disable lighting when suspended.
+#     define RGB_MATRIX_LED_FLUSH_LIMIT      (1000 / 24)             // 24 FPS animations.
+#     define RGB_MATRIX_LED_PROCESS_LIMIT    (DRIVER_LED_TOTAL / 9)  // Limit LED effects' overhead.
+#     define RGB_MATRIX_MAXIMUM_BRIGHTNESS   140                     // Max brightness (uint8_t, best if <= 150).
+#     define RGB_MATRIX_DISABLE_KEYCODES                             // Disable default RGB controls.
 
 // Basic effects.
 #     define DISABLE_RGB_MATRIX_ALPHAS_MODS
@@ -84,8 +84,6 @@
 # endif  // RGB_MATRIX_ENABLE
 
 // ----------------------------------------------------- Others ----------------------------------------------------- //
-
-# define USE_SERIAL_PD2
 
 # define TAPPING_TERM  180
 
