@@ -59,6 +59,8 @@ guide without problem.
 
  * Don't restart when splitting apart (or at least don't lose the state).
  * Custom lighting depending on current layer.
+   * Not doable just yet it seems. See [#6277](https://github.com/qmk/qmk_firmware/issues/6277) &
+     [#8789](https://github.com/qmk/qmk_firmware/issues/8789).
 
 
 ## Licenses
