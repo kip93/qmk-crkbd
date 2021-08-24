@@ -28,6 +28,7 @@ keyboard), and based on [QMK](https://github.com/qmk/qmk_firmware/).
     tap and hold) it then behaves like the shift key.*
  * *The `Space/L1` and `Enter/L2` work so that if the keys are only tapped then the first value in inputted, but when
     held then they momentarily activate the assigned layer as long as they remain pressed.*
+* *The PC needs to be set up to use en-US keyboard layout, otherwise it will not work as expected.*
 
 
 ## How to ...
