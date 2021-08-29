@@ -19,13 +19,11 @@ keyboard), and based on [QMK](https://github.com/qmk/qmk_firmware/).
    * *Even though the keyboard has no indicators to show on which mode its in, you can easily make sure that you are in
       the desired one by pressing either both the inner most thumb keys or the middle thumb keys (the first for getting
       into typing mode, the second to get into gaming mode). Keep in mind that the left key should be pressed before the
-      right one, though (at least to get out of gaming mode).*
+      right one (at least to get out of gaming mode).*
  * *Keys labelled L0 - L4 are for switching layers. Keys that change from one "mode" to the other are one way, while the
     rest are only active when held.*
- * *The `GUI` key is either Windows, Command, or Super key, depending on the system.*
- * *The `Ctrl/Shift` keys in typing mode are [tap dance](https://docs.qmk.fm/#/feature_tap_dance) keys. This means that
-    if you tap (or tap and hold) the key it behaves like the control key, but if you quickly tap twice (or tap once then
-    tap and hold) it then behaves like the shift key.*
+ * *The `GUI` key is also called either Windows, Command, or Super key, depending on the system.*
+ * *`Backspace/Delete` key changes behaviour when shift is pressed. Similarly for `Backspace/Esc` and the control key.*
  * *The `Space/L1` and `Enter/L2` work so that if the keys are only tapped then the first value in inputted, but when
     held then they momentarily activate the assigned layer as long as they remain pressed.*
 * *The PC needs to be set up to use en-US keyboard layout, otherwise it will not work as expected.*
@@ -42,7 +40,7 @@ MCUs, a TRRS cable, 42 key switches and keycaps, and a USB-A to USB-C cable.
 
 Once you have everything you just have to put it all together. It is intuitive enough but there is also a
 [handy-dandy build guide](https://github.com/foostan/crkbd/blob/master/corne-cherry/doc/v3/buildguide_en.md) that you
-follow if needed.
+can follow if needed.
 
 ### Put the firmware onto the keyboard
 
@@ -67,4 +65,6 @@ guide without problem.
 
 All the contents of this repo are distributed under the [GPLv3](./LICENSE), except the font
 [Victor Mono](https://rubjo.github.io/victor-mono/) used for the image for the layout of the keyboard, which is
-distributed under the [MIT license](https://github.com/rubjo/victor-mono/blob/master/LICENSE).
+distributed under the [MIT license](https://github.com/rubjo/victor-mono/blob/master/LICENSE). The board itself is also
+released under the [MIT license](https://github.com/foostan/crkbd/blob/main/LICENSE), and QMK is under
+[GPLv2](https://github.com/qmk/qmk_firmware/blob/master/LICENSE).

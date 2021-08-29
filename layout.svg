@@ -193,8 +193,7 @@
 
                 <!-- Thumb row -->
                 <text>
-                    <tspan x = "260.5" y = "252.9">Ctrl </tspan>
-                    <tspan x = "260.5" y = "272.9">Shift</tspan>
+                    <tspan x = "260.5" y = "252.9">Shift</tspan>
                 </text>
                 <text transform = "rotate(+15,354.7,268.1)">
                     <tspan x = "333.7" y = "262.4">Space</tspan>
@@ -268,7 +267,6 @@
                 </text>
                 <text>
                     <tspan x = "724.1" y = "252.9">Ctrl </tspan>
-                    <tspan x = "724.1" y = "272.9">Shift</tspan>
                 </text>
             </g>
         </svg>
@@ -352,8 +350,7 @@
 
                 <!-- Thumb row -->
                 <text>
-                    <tspan x = "260.5" y = "252.9">Ctrl </tspan>
-                    <tspan x = "260.5" y = "272.9">Shift</tspan>
+                    <tspan x = "260.5" y = "252.9">Shift</tspan>
                 </text>
                 <text transform = "rotate(+15,354.7,268.1)">
                     <tspan x = "333.7" y = "262.4">L0   </tspan>
@@ -417,7 +414,8 @@
 
                     <tspan x = "889.3" y = "200.4">Enter</tspan>
 
-                    <tspan x = "956.0" y = "200.4">=    </tspan>
+                    <tspan x = "956.0" y = "200.4">BckSp</tspan>
+                    <tspan x = "956.0" y = "220.4">Esc  </tspan>
                 </text>
 
                 <!-- Thumb row  -->
@@ -429,7 +427,6 @@
                 </text>
                 <text>
                     <tspan x = "724.1" y = "252.9">Ctrl </tspan>
-                    <tspan x = "724.1" y = "272.9">Shift</tspan>
                 </text>
             </g>
         </svg>
@@ -531,8 +528,7 @@
 
                 <!-- Thumb row -->
                 <text>
-                    <tspan x = "260.5" y = "252.9">Ctrl </tspan>
-                    <tspan x = "260.5" y = "272.9">Shift</tspan>
+                    <tspan x = "260.5" y = "252.9">Shift</tspan>
                 </text>
                 <text transform = "rotate(+15,354.7,268.1)">
                     <tspan x = "333.7" y = "262.4">L3   </tspan>
@@ -549,10 +545,10 @@
                     <tspan x = "623.7" y = "79.0" >song </tspan>
 
                     <tspan x = "689.8" y = "50.7" >Vol  </tspan>
-                    <tspan x = "689.8" y = "70.7" >up   </tspan>
+                    <tspan x = "689.8" y = "70.7" >down </tspan>
 
                     <tspan x = "755.9" y = "42.3" >Vol  </tspan>
-                    <tspan x = "755.9" y = "62.3" >down </tspan>
+                    <tspan x = "755.9" y = "62.3" >up   </tspan>
 
                     <tspan x = "823.1" y = "50.7" >Next </tspan>
                     <tspan x = "823.1" y = "70.7" >song </tspan>
@@ -605,7 +601,6 @@
                 </text>
                 <text>
                     <tspan x = "724.1" y = "252.9">Ctrl </tspan>
-                    <tspan x = "724.1" y = "272.9">Shift</tspan>
                 </text>
             </g>
         </svg>

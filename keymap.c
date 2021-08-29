@@ -23,7 +23,6 @@
 # include "layers.h"
 # include "macros.h"
 # include "rgb_macros.h"
-# include "tapdance.h"
 
 
 const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] PROGMEM = {
@@ -40,7 +39,7 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] PROGMEM = {
 //     +--------+--------+--------+--------+--------+--------+   +--------+--------+--------+--------+--------+--------+
         KC_APP,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,        KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_BSLS,
 //     +--------+--------+--------+--------+--------+--------+   +--------+--------+--------+--------+--------+--------+
-                             TD(LCS), LT(T1,KC_SPC), KC_LALT,     KC_LGUI, LT(T2,KC_ENT), TD(RCS)
+                             KC_LSFT, LT(T1,KC_SPC), KC_LALT,     KC_LGUI, LT(T2,KC_ENT), KC_LCTL
 //                          +--------+--------------+--------+   +--------+--------------+--------+
     ),
 
@@ -54,7 +53,7 @@ const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS] PROGMEM = {
 //     +--------+--------+--------+--------+--------+--------+   +--------+--------+--------+--------+--------+--------+
         KC_F2,   KC_F5,   KC_F8,   KC_F11,  KC_HOME, KC_PGUP,     KC_PDOT, KC_P4,   KC_P5,   KC_P6,   KC_PPLS, KC_PAST,
 //     +--------+--------+--------+--------+--------+--------+   +--------+--------+--------+--------+--------+--------+
-        KC_F3,   KC_F6,   KC_F9,   KC_F12,  KC_END,  KC_PGDN,     KC_P0,   KC_P1,   KC_P2,   KC_P3,   KC_PENT, KC_PEQL,
+        KC_F3,   KC_F6,   KC_F9,   KC_F12,  KC_END,  KC_PGDN,     KC_P0,   KC_P1,   KC_P2,   KC_P3,   KC_PENT, KC_BSES,
 //     +--------+--------+--------+--------+--------+--------+   +--------+--------+--------+--------+--------+--------+
                                    KC_TRNS, KC_TRNS, KC_TRNS,     KC_TRNS, TO(G0),  KC_TRNS
 //                                +--------+--------+--------+   +--------+--------+--------+

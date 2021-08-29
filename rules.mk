@@ -15,9 +15,6 @@
 # <http://www.gnu.org/licenses/>.                                                                                      #
 ########################################################################################################################
 
-# Enable tap dance (https://docs.qmk.fm/#/feature_tap_dance).
-TAP_DANCE_ENABLE  = yes
-
 # Enable LEDs.
 RGB_MATRIX_ENABLE       = yes
 RGB_MATRIX_CUSTOM_USER  = yes
