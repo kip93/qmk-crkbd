@@ -57,28 +57,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case BACKSPACE_DELETE: {
             custom_modifier(record, MOD_MASK_SHIFT, KC_BSPC, KC_DEL);
+
+            return false;
         }
 
         case BACKSPACE_ESCAPE: {
             custom_modifier(record, MOD_MASK_CTRL, KC_BSPC, KC_ESC);
+
+            return false;
         }
 
         case RGB_MODE: {
             if (record -> event.pressed) {
                 rgb_next_mode();
             }
+
+            return false;
         }
 
         case RGB_COLOUR: {
             if (record -> event.pressed) {
                 rgb_next_colour();
             }
+
+            return false;
         }
 
         default: {
             return true;
         }
     }
-
-    return false;
 }
