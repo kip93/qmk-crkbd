@@ -333,8 +333,9 @@ in pkgs.mkShell {
         '${pkgs.coreutils}/bin/printf' \
           '# \033[3mExtract HEX file\033[0m ------------------------------------------------------------------------------------ #\n' ;
         (
-          '${pkgs.coreutils}/bin/ls' "''${_ROOT_DIR}/QMK/.build"/*.hex | head -1 | xargs -i cp -f -- '{}' "''${_ROOT_DIR}/firmware.hex" && \
-          '${pkgs.coreutils}/bin/printf' 'Extracted firmware.hex\n' ;
+          '${pkgs.coreutils}/bin/mkdir' -p "''${_ROOT_DIR}/.build" && \
+          '${pkgs.coreutils}/bin/ls' "''${_ROOT_DIR}/QMK/.build"/*.hex | head -1 | xargs -i cp -f -- '{}' "''${_ROOT_DIR}/.build/firmware.hex" && \
+          '${pkgs.coreutils}/bin/printf' 'Extracted .build/firmware.hex\n' ;
         ) || XC="$(( "''${XC}" + 0x08 ))" ;
         '${pkgs.coreutils}/bin/printf' '\n'
       )
