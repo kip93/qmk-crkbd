@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 concurrency:
   group: release
@@ -30,7 +30,7 @@ jobs:
 
       - name: Create tag
         run: |
-          git tag "$(date +v%y.%m.%d-%H%M%S)"
+          git tag "$(date +v%y.%m.%d.%H%M%S)${{ github.ref != 'refs/heads/main' && "-RC" }}"
           git push origin --tags
 
       - name: Publish release
@@ -38,3 +38,4 @@ jobs:
         with:
           files: |
             .build/firmware.hex
+          prerelease: ${{ github.ref != 'refs/heads/main' }}
