@@ -29,7 +29,9 @@ jobs:
         run: nix-shell --run compile
 
       - name: Create tag
-        uses: fregante/daily-version-action@v1
+        run: |
+          git tag "$(date +v%y.%m.%d-%H%M%S)"
+          git push origin --tags
 
       - name: Publish release
         uses: softprops/action-gh-release@v1
