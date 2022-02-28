@@ -421,6 +421,7 @@ Usual development goes something along the lines:
 # Install Nix
 sh <(curl -L 'https://nixos.org/nix/install') --no-daemon
 # Clone keymap repo
+# If you don't clone, an empty repo will be initialised later on
 git clone 'https://github.com/<USER>/<REPO>/' '<WORKDIR>'
 cd '<WORKDIR>'
 # Enter Nix+QMK toolbox
@@ -499,6 +500,10 @@ the sections 1 and 3 failed ( 2^(1-1) + 2^(3-1) = 5 ).
 From the exit code you may be able to inspect the shell.nix file to determine
 the source of the issue (the entirety of the relevant code is in there in a
 monolithic file).
+.PP
+If you want to open an issue or a PR feel free to do so @
+.br
+https://github.com/kip93/qmk-crkbd/
 EOF
 
       return 0
@@ -516,6 +521,7 @@ EOF
       '${pkgs.coreutils}/bin/printf' '\033[0m     , , , , , ,\n'
       '${pkgs.coreutils}/bin/printf' '\n'
       '${pkgs.coreutils}/bin/printf' '\033[0m\033[3mType `help` to get info on available commands.\033[0m\n'
+      '${pkgs.coreutils}/bin/printf' '\n'
 
       return 0
     }
