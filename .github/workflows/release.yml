@@ -38,9 +38,8 @@ jobs:
 
       - name: Publish release
         uses: softprops/action-gh-release@v1
-        needs: tag
         with:
           files: |
             .build/firmware.hex
-          tag_name: ${{ needs.tag.outputs.tag }}
+          tag_name: ${{ steps.tag.outputs.tag }}
           prerelease: ${{ github.ref != 'refs/heads/main' }}
