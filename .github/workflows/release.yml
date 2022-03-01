@@ -29,13 +29,18 @@ jobs:
         run: nix-shell --run compile
 
       - name: Create tag
+        id: tag
         run: |
-          git tag "$(date +v%y.%m.%d.%H%M%S)${{ github.ref != 'refs/heads/main' && '-RC' || '' }}"
+          TAG="$(date '+v%y.%m.%d.%H%M%S')${{ github.ref != 'refs/heads/main' && '-RC' || '' }}"
+          git tag "${TAG}"
           git push origin --tags
+          printf '::set-output name=tag::%s\n' "${TAG}"
 
       - name: Publish release
         uses: softprops/action-gh-release@v1
+        needs: tag
         with:
           files: |
             .build/firmware.hex
+          tag_name: ${{ needs.tag.outputs.tag }}
           prerelease: ${{ github.ref != 'refs/heads/main' }}
