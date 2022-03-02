@@ -23,9 +23,6 @@
   # Name of the folder inside the QMK submodule
   # e.g., `ergodox_ez`, `0xcb/1337`, et cetera
   KEYBOARD = "crkbd";
-  # The keymap link to be created inside of QMK/<KEYBOARD>/keymaps
-  # e.g., `my_keymap`
-  KEYMAP = "kip93";
 
   # Number of threads to be used when compiling.
   PARALLEL = 16;
@@ -216,23 +213,14 @@ in pkgs.mkShell {
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mClean up workspace\033[0m ---------------------------------------------------------------------------------- #\n' ;
       (
-        '${pkgs.findutils}/bin/find' "''${_ROOT_DIR}" -type f -a -not -path "''${_ROOT_DIR}/QMK/*" -a '(' \
-          -iname '*.c' -o -iname '*.cpp' -o -iname '*.def' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.inc' -o -iname '*.mk' \
-        ')' -exec '${pkgs.coreutils}/bin/rm' -f -- '{}' ';' ;
+        '${pkgs.coreutils}/bin/rm' -rf -- "''${_ROOT_DIR}/keymap/" ;
       ) || XC="$(( "''${XC}" + 0x01 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
 
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mCopy default keymap\033[0m --------------------------------------------------------------------------------- #\n' ;
       (
-        '${pkgs.findutils}/bin/find' -P "''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default/" \
-          -type f -a '(' -iname '*.c' -o -iname '*.cpp' -o -iname '*.def' -o -iname '*.h' -o -iname '*.hpp' -o -iname '*.inc' -o -iname '*.mk' ')' | \
-          '${pkgs.gnused}/bin/sed' "s|^''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default/||g" | \
-          '${pkgs.findutils}/bin/xargs' -i '${pkgs.bashInteractive}/bin/sh' -c "
-            '${pkgs.coreutils}/bin/mkdir' -p ''\'''${_ROOT_DIR}/{}' &&
-            '${pkgs.coreutils}/bin/rm' -rf -- ''\'''${_ROOT_DIR}/{}' &&
-            '${pkgs.coreutils}/bin/cp' -f -- ''\'''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default/{}' ''\'''${_ROOT_DIR}/{}'
-          " ;
+        '${pkgs.coreutils}/bin/cp' -rf -- "''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default" "''${_ROOT_DIR}/keymap";
       ) || XC="$(( "''${XC}" + 0x02 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
 
@@ -258,7 +246,7 @@ in pkgs.mkShell {
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mClean workspace\033[0m ------------------------------------------------------------------------------------- #\n' ;
       (
-        '${pkgs.git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -dfX && \
+        '${pkgs.git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df && \
         '${pkgs.git}/bin/git' -C "''${_ROOT_DIR}" clean -dfX ;
       ) || XC="$(( "''${XC}" + 0x01 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
@@ -269,12 +257,14 @@ in pkgs.mkShell {
     lint() {
       local XC=0
 
+      local KEYMAP_ID="$('${pkgs.coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
       (
-        '${pkgs.coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}' && \
-        '${pkgs.coreutils}/bin/ln' -sf "''${_ROOT_DIR}" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}' && \
-        '${pkgs.coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}\n' ;
+        '${pkgs.coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" && \
+        '${pkgs.coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" && \
+        '${pkgs.coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
       ) || XC="$(( "''${XC}" + 0x01 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
 
@@ -283,7 +273,7 @@ in pkgs.mkShell {
           '# \033[3mQMK linting\033[0m ----------------------------------------------------------------------------------------- #\n' ;
         (
           cd "''${_ROOT_DIR}/QMK" && \
-          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk lint -kb '${KEYBOARD}' -km '${KEYMAP}'" ;
+          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk lint -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
         ) || XC="$(( "''${XC}" + 0x02 ))" ;
         '${pkgs.coreutils}/bin/printf' '\n' ;
       )
@@ -301,6 +291,8 @@ in pkgs.mkShell {
     compile() {
       local XC=0
 
+      local KEYMAP_ID="$('${pkgs.coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mClean up old builds\033[0m --------------------------------------------------------------------------------- #\n' ;
       (
@@ -313,9 +305,9 @@ in pkgs.mkShell {
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
       (
-        '${pkgs.coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}' && \
-        '${pkgs.coreutils}/bin/ln' -sf "''${_ROOT_DIR}" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}' && \
-        '${pkgs.coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}\n' ;
+        '${pkgs.coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" && \
+        '${pkgs.coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" && \
+        '${pkgs.coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
       ) || XC="$(( "''${XC}" + 0x02 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
 
@@ -324,7 +316,7 @@ in pkgs.mkShell {
           '# \033[3mCompile\033[0m --------------------------------------------------------------------------------------------- #\n' ;
         (
           cd "''${_ROOT_DIR}/QMK" && \
-          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk compile -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km '${KEYMAP}'" ;
+          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk compile -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
         ) || XC="$(( "''${XC}" + 0x04 ))" ;
         '${pkgs.coreutils}/bin/printf' '\n' ;
       )
@@ -353,22 +345,43 @@ in pkgs.mkShell {
     flash() {
       local XC=0
 
+      local KEYMAP_ID="$('${pkgs.coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+
+      '${pkgs.coreutils}/bin/printf' \
+        '# \033[3mClean up old builds\033[0m --------------------------------------------------------------------------------- #\n' ;
+      (
+        cd "''${_ROOT_DIR}/QMK" && \
+        '${pkgs.nix}/bin/nix-shell' --pure --run 'qmk clean' && \
+        '${pkgs.coreutils}/bin/printf' 'Cleaned QMK/.build\n' ;
+      ) || XC="$(( "''${XC}" + 0x01 ))" ;
+      '${pkgs.coreutils}/bin/printf' '\n' ;
+
       '${pkgs.coreutils}/bin/printf' \
         '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
       (
-        '${pkgs.coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}' && \
-        '${pkgs.coreutils}/bin/ln' -sf "''${_ROOT_DIR}" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}' && \
-        '${pkgs.coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/${KEYMAP}\n' ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
+        '${pkgs.coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" && \
+        '${pkgs.coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" && \
+        '${pkgs.coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
+      ) || XC="$(( "''${XC}" + 0x02 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
+
+      [[ "''${XC}" -ne 0 ]] || (
+        '${pkgs.coreutils}/bin/printf' \
+          '# \033[3mCompile\033[0m --------------------------------------------------------------------------------------------- #\n' ;
+        (
+          cd "''${_ROOT_DIR}/QMK" && \
+          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk compile -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
+        ) || XC="$(( "''${XC}" + 0x04 ))" ;
+        '${pkgs.coreutils}/bin/printf' '\n' ;
+      )
 
       [[ "''${XC}" -ne 0 ]] || (
         '${pkgs.coreutils}/bin/printf' \
           '# \033[3mFlash\033[0m ----------------------------------------------------------------------------------------------- #\n' ;
         (
           cd "''${_ROOT_DIR}/QMK" && \
-          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk flash -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km '${KEYMAP}'" ;
-        ) || XC="$(( "''${XC}" + 0x02 ))" ;
+          '${pkgs.nix}/bin/nix-shell' --pure --run "qmk flash -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
+        ) || XC="$(( "''${XC}" + 0x08 ))" ;
         '${pkgs.coreutils}/bin/printf' '\n' ;
       )
 
@@ -376,7 +389,7 @@ in pkgs.mkShell {
         '# \033[3mUnlink keymap\033[0m --------------------------------------------------------------------------------------- #\n' ;
       (
         '${pkgs.git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df ;
-      ) || XC="$(( "''${XC}" + 0x04 ))" ;
+      ) || XC="$(( "''${XC}" + 0x10 ))" ;
       '${pkgs.coreutils}/bin/printf' '\n' ;
 
       return "''${XC}"
