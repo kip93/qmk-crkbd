@@ -38,7 +38,6 @@ jobs:
           printf '::set-output name=tag::%s\n' "${TAG}"
 
       - name: Create changelog
-        id: tag
         run: |
           printf '[Commits to %s since this release]' "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
           printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
