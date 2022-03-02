@@ -13,8 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
+          fetch-depth: 0
           submodules: recursive
 
       - name: Set up Nix
@@ -39,6 +40,17 @@ jobs:
 
       - name: Create changelog
         run: |
+          git fetch --tags
+
+          printf 'Branch:\n'
+          printf '%s\n\n' "${GITHUB_REF_NAME}"
+          printf 'Latest tags:\n'
+          git tag -l --sort=version:refname | tail -10
+          printf '\n'
+          printf 'Latest full release tags:\n'
+          git tag -l --sort=version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | tail -10
+          printf '\n'
+
           printf '[Commits to %s since this release]' "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
           printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
           printf '%s...%s)' "${{ steps.tag.outputs.tag }}" "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
