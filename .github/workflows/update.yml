@@ -1,0 +1,28 @@
+name: Update QMK
+
+on:
+  schedule: [ { cron: "42 */4 * * *" } ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: update
+
+jobs:
+  update:
+    name: Update QMK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with: { ref: "develop" }
+
+    - name: Update
+      run: |
+        git submodule update --init --remote QMK
+
+    - name: Commit
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git remote set-url origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+        git commit -am "Update QMK - [GitHub Action]" && git push || true
