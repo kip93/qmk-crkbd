@@ -28,10 +28,13 @@ jobs:
           nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
 
       - name: Select Nix packages
+        id: nix-packages
         run: |
           printf '(import ./QMK/shell.nix {}).buildInputs++(import ./QMK/shell.nix {}).nativeBuildInputs++(import ./shell.nix {}).buildInputs++(import ./shell.nix {}).nativeBuildInputs' >./sources.nix
           printf 'Packages:\n'
           nix-instantiate --eval --strict --expr 'builtins.toString (builtins.sort builtins.lessThan (builtins.map (x: builtins.elemAt (builtins.match "^.{33}(.+)$" (builtins.baseNameOf (builtins.toString x))) 0) (import ./sources.nix)))' | sed 's/ /\n/g;s/"//g'
+
+          nix-instantiate --eval --strict --expr 'builtins.replaceStrings [" "] [""] (builtins.toString (builtins.sort builtins.lessThan (builtins.map (x: builtins.elemAt (builtins.match "^(.{32}).+$" (builtins.baseNameOf (builtins.toString x))) 0) (import ./sources.nix))))' | sed 's/"//g' | xargs -i printf '::set-output name=hash::%s\n' '{}'
 
       - name: Set up Nix cache
         uses: actions/cache@v2
@@ -43,7 +46,7 @@ jobs:
             /nix/var/nix/profiles/default/bin/
             /nix/var/nix/profiles/per-user/root/channels
           key: |
-            nix-${{ nix-instantiate --eval --strict --expr 'builtins.replaceStrings [" "] [""] (builtins.toString (builtins.sort builtins.lessThan (builtins.map (x: builtins.elemAt (builtins.match "^(.{32}).+$" (builtins.baseNameOf (builtins.toString x))) 0) (import ./sources.nix))))' }}
+            nix-${{ steps.nix-packages.outputs.hash }}
 
       - name: Install Nix packages
         if: steps.nix-cache.outputs.cache-hit != 'true'
