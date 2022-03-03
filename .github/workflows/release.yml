@@ -27,6 +27,29 @@ jobs:
         run: |
           nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
 
+      - name: Select Nix packages
+        run: |
+          printf '(import ./QMK/shell.nix {}).buildInputs++(import ./QMK/shell.nix {}).nativeBuildInputs++(import ./shell.nix {}).buildInputs++(import ./shell.nix {}).nativeBuildInputs' >./sources.nix
+          printf 'Packages:\n'
+          nix-instantiate --eval --strict --expr 'builtins.toString (builtins.sort builtins.lessThan (builtins.map (x: builtins.elemAt (builtins.match "^.{33}(.+)$" (builtins.baseNameOf (builtins.toString x))) 0) (import ./sources.nix)))' | sed 's/ /\n/g;s/"//g'
+
+      - name: Set up Nix cache
+        uses: actions/cache@v2
+        id: nix-cache
+        with:
+          path: |
+            /nix/store/
+            /nix/var/nix/profiles/per-user/*/profile/bin
+            /nix/var/nix/profiles/default/bin/
+            /nix/var/nix/profiles/per-user/root/channels
+          key: |
+            nix-${{ nix-instantiate --eval --strict --expr 'builtins.replaceStrings [" "] [""] (builtins.toString (builtins.sort builtins.lessThan (builtins.map (x: builtins.elemAt (builtins.match "^(.{32}).+$" (builtins.baseNameOf (builtins.toString x))) 0) (import ./sources.nix))))' }}
+
+      - name: Install Nix packages
+        if: steps.nix-cache.outputs.cache-hit != 'true'
+        run: |
+          nix-env -i -f ./sources.nix
+
       - name: Compile
         run: nix-shell --run compile
 
@@ -74,7 +97,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            .build/firmware.hex
+            ./.build/firmware.hex
           tag_name: ${{ steps.tag.outputs.tag }}
           body_path: .build/CHANGELOG.md
           prerelease: ${{ github.ref != 'refs/heads/main' }}
