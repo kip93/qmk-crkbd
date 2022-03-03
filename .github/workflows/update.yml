@@ -14,11 +14,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with: { ref: "develop" }
+        with:
+          ref: develop
+          submodules: recursive
 
       - name: Update
         run: |
-          git submodule update --init --remote QMK
+          git submodule update --remote QMK
 
       - name: Set up Nix
         uses: cachix/install-nix-action@v15
