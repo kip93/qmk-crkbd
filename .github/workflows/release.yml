@@ -101,8 +101,6 @@ jobs:
           prerelease: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Push to cache
-        concurrency:
-          group: cache
         run: |
           nix-shell --pure shell.nix --run :
           nix-shell --pure QMK/shell.nix --run :

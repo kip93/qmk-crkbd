@@ -51,8 +51,6 @@ jobs:
           git commit -am "Update QMK - [GitHub Action]" && git push || true
 
       - name: Push to cache
-        concurrency:
-          group: cache
         run: |
           nix-shell --pure QMK/shell.nix --run :
 
