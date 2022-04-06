@@ -35,6 +35,7 @@ jobs:
           name: kip93
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           extraPullNames: nix-community
+          skipPush: true
 
       - name: Print nixpkgs version
         run: |
