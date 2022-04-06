@@ -22,6 +22,9 @@ jobs:
         uses: cachix/install-nix-action@v15
         with:
           nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org/
 
       - name: Print nixpkgs version
         run: |
@@ -69,14 +72,28 @@ jobs:
         run: |
           git fetch --tags
 
-          printf 'Branch:\n'
-          printf '%s\n\n' "${GITHUB_REF_NAME}"
+          printf 'Reference:\n'
+          printf '%s\n\n' "${GITHUB_REF}"
           printf 'Latest tags:\n'
-          git tag -l --sort=version:refname | tail -10
+          git tag -l --sort=-version:refname | head -10
           printf '\n'
           printf 'Latest full release tags:\n'
-          git tag -l --sort=version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | tail -10
+          git tag -l --sort=-version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | head -10
           printf '\n'
+          printf 'Current tag:\n'
+          local TAG="${steps.tag.outputs.tag}"
+          printf '%s\n\n' "${TAG}"
+          printf 'last tag:\n'
+          if [ "${GITHUB_REF_NAME}" = 'main' ] && [ "$(git tag -l | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | wc -l)" -ge 2 ] ; then
+            local LAST_TAG="$(git tag -l --sort=-version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | sed -n '2{p;q;}')"
+
+          elif [ "$(git tag -l | wc -l)" -ge 2 ] ; then
+            local LAST_TAG="$(git tag -l --sort=-version:refname | sed -n '2{p;q;}')"
+
+          else
+            local LAST_TAG="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          printf '%s\n\n' "${LAST_TAG}"
 
           printf '[Commits to %s since this release]' "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
           printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
