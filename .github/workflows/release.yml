@@ -105,21 +105,4 @@ jobs:
         run: |
           nix-shell --pure shell.nix --run :
           nix-shell --pure QMK/shell.nix --run :
-
-          nix-store -qR --include-outputs $(nix-instantiate shell.nix QMK/shell.nix 2>/dev/null) |
-            xargs -P0 -i sh -c '
-              (
-                nix path-info -r {} --store https://cache.nixos.org/ ||
-                nix path-info -r {} --store https://nix-community.cachix.org/ ||
-                nix path-info -r {} --store https://kip93.cachix.org/
-              ) >/dev/null 2>/dev/null ||
-              printf "%s\n" {}
-            ' >/tmp/derivations
-
-          nix-store -q --size $(cat /tmp/derivations) |
-            awk -F: '{total+=$1} END{print total}' |
-            numfmt --to=iec-i |
-            xargs -i printf 'Estimated size: %sB\n' '{}'
-
-          cat /tmp/derivations |
-            cachix push kip93
+          nix-store -qR --include-outputs $(nix-instantiate shell.nix QMK/shell.nix 2>/dev/null) | cachix push kip93
