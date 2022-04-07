@@ -63,11 +63,11 @@ jobs:
 
           printf 'Changelog:\n'
           if [ "${GITHUB_REF_NAME}" = 'main' ] && [ "$(git tag -l | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | wc -l)" -ge 2 ] ; then
-            local LAST_TAG="$(git tag -l --sort=-version:refname | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | sed -n '2{p;q;}')"
+            LAST_TAG="$(git tag -l --sort=-version:refname | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | sed -n '2{p;q;}')"
           elif [ "$(git tag -l | wc -l)" -ge 2 ] ; then
-            local LAST_TAG="$(git tag -l --sort=-version:refname | sed -n '2{p;q;}')"
+            LAST_TAG="$(git tag -l --sort=-version:refname | sed -n '2{p;q;}')"
           else
-            local LAST_TAG="$(git rev-list --max-parents=0 HEAD)"
+            LAST_TAG="$(git rev-list --max-parents=0 HEAD)"
           fi
           printf '%s...%s\n\n' "${{ steps.tag.outputs.tag }}" "${LAST_TAG}"
 
