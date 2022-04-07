@@ -1,7 +1,10 @@
+cachix
 Corne
 keycaps
 Keyhive
 keymap
 keymaps
 MCUs
+nixpkgs
 ortholinear
+shellcheck

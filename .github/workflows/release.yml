@@ -36,7 +36,7 @@ jobs:
           nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
 
       - name: Compile
-        run: nix-shell --run compile
+        run: nix-shell --pure --run compile
 
       - name: Create tag
         id: tag

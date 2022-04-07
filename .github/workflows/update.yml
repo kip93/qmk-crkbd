@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: develop
+          fetch-depth: 0
           submodules: recursive
 
       - name: Update
@@ -42,7 +42,7 @@ jobs:
           nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
 
       - name: Validate
-        run: nix-shell --run compile
+        run: nix-shell --pure --run compile
 
       - name: Commit
         run: |
