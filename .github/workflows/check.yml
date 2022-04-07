@@ -1,0 +1,78 @@
+name: Check code
+
+on:
+  push: { branches: [ main, develop ] }
+  workflow_dispatch: {}
+
+jobs:
+  update:
+    name: Check code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v15
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command
+
+      - name: Set up cache
+        uses: cachix/cachix-action@v10
+        with:
+          name: kip93
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          extraPullNames: nix-community
+          skipPush: true
+
+      - name: Print nixpkgs version
+        run: |
+          nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
+
+      - name: Shellcheck shell.nix
+        id: shellcheck
+        run: |
+          (
+            printf '#!/bin/bash\n' ;
+            nix-shell --pure shell.nix --run : >/dev/null ;
+            nix-instantiate shell.nix 2>/dev/null | xargs -i sed '1,5d' {} ;
+          ) | nix-shell -p shellcheck --run 'shellcheck -'
+        continue-on-error: true
+
+      - name: QMK Lint
+        id: qmk-lint
+        run: |
+          nix-shell --run lint
+        continue-on-error: true
+
+      - name: Check shell.nix format
+        id: nixpkgs-fmt
+        run: |
+          nix-shell -p nixpkgs-fmt --run 'nixpkgs-fmt --check shell.nix'
+        continue-on-error: true
+
+      - name: Lint shell.nix
+        id: nix-linter
+        run: |
+          nix-shell -p nix-linter --run 'nix-linter -W no-AlphabeticalArgs -W no-AlphabeticalBindings -W BetaReduction -W DIYInherit -W EmptyInherit -W EmptyLet -W no-EmptyVariadicParamSet -W FreeLetInFunc -W LetInInheritRecset -W no-ListLiteralConcat -W NegateAtom -W SequentialLet -W SetLiteralUpdate -W UnfortunateArgName -W no-UnneededAntiquote -W UnneededRec -W UnusedArg -W UnusedLetBind -W UpdateEmptySet -v shell.nix'
+        continue-on-error: true
+
+      - name: Check shell.nix for vulnerabilities
+        id: vulnix
+        run: |
+          nix-shell -p vulnix --run 'vulnix -f shell.nix'
+        continue-on-error: true
+
+      - name: Check for failures
+        if: steps.shellcheck.outcome != 'success' || steps.qmk-lint.outcome != 'success' || steps.nixpkgs-fmt.outcome != 'success' || steps.nix-linter.outcome != 'success' || steps.vulnix.outcome != 'success'
+        run: exit 1
+
+      - name: Push to cache
+        run: |
+          nix-shell --pure shell.nix --run :
+          nix-store -qR --include-outputs $(nix-instantiate shell.nix 2>/dev/null) | cachix push kip93
