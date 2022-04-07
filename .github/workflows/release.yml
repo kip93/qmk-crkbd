@@ -44,59 +44,48 @@ jobs:
           TAG="$(date '+v%y.%m.%d.%H%M%S')${{ github.ref != 'refs/heads/main' && '-RC' || '' }}"
           git tag "${TAG}"
           git push --tags
+          printf 'Tagged: %s -> %s.\n\n' "$(git rev-parse HEAD)" "${TAG}"
 
           printf '::set-output name=tag::%s\n' "${TAG}"
 
       - name: Create changelog
         run: |
-          git fetch --tags
-
           printf 'Reference:\n'
-          printf '%s\n\n' "${GITHUB_REF}"
+          printf '%s.\n\n' "${GITHUB_REF}"
+
           printf 'Latest tags:\n'
+          git fetch --tags
           git tag -l --sort=-version:refname | head -10
           printf '\n'
           printf 'Latest full release tags:\n'
-          git tag -l --sort=-version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | head -10
+          git tag -l --sort=-version:refname | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | head -10
           printf '\n'
-          printf 'Current tag:\n'
-          local TAG="${steps.tag.outputs.tag}"
-          printf '%s\n\n' "${TAG}"
-          printf 'last tag:\n'
-          if [ "${GITHUB_REF_NAME}" = 'main' ] && [ "$(git tag -l | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | wc -l)" -ge 2 ] ; then
-            local LAST_TAG="$(git tag -l --sort=-version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | sed -n '2{p;q;}')"
 
+          printf 'Changelog:\n'
+          if [ "${GITHUB_REF_NAME}" = 'main' ] && [ "$(git tag -l | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | wc -l)" -ge 2 ] ; then
+            local LAST_TAG="$(git tag -l --sort=-version:refname | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | sed -n '2{p;q;}')"
           elif [ "$(git tag -l | wc -l)" -ge 2 ] ; then
             local LAST_TAG="$(git tag -l --sort=-version:refname | sed -n '2{p;q;}')"
-
           else
             local LAST_TAG="$(git rev-list --max-parents=0 HEAD)"
           fi
-          printf '%s\n\n' "${LAST_TAG}"
-
-          printf '[Commits to %s since this release]' "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
-          printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
-          printf '%s...%s)' "${{ steps.tag.outputs.tag }}" "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
-          printf '\n\n' >>'.build/CHANGELOG.md'
+          printf '%s...%s\n\n' "${{ steps.tag.outputs.tag }}" "${LAST_TAG}"
 
           printf '[Full changelog]' >>'.build/CHANGELOG.md'
           printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
-          if [ "${GITHUB_REF_NAME}" = 'main' ] && [ "$(git tag -l | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | wc -l)" -ge 2 ] ; then
-            printf '%s...%s)' "$(git tag -l --sort=version:refname | grep -P '^v\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{6}$' | tail -2 | head -1)" "${{ steps.tag.outputs.tag }}" >>'.build/CHANGELOG.md'
+          printf '%s...%s)\n\n' "${LAST_TAG}" "${{ steps.tag.outputs.tag }}" >>'.build/CHANGELOG.md'
 
-          elif [ "$(git tag -l | wc -l)" -ge 2 ] ; then
-            printf '%s...%s)' "$(git tag -l --sort=version:refname | tail -2 | head -1)" "${{ steps.tag.outputs.tag }}" >>'.build/CHANGELOG.md'
-
-          else
-            printf '%s...%s)' "$(git rev-list --max-parents=0 HEAD)" "${{ steps.tag.outputs.tag }}" >>'.build/CHANGELOG.md'
-          fi
-          printf '\n\n' >>'.build/CHANGELOG.md'
+          printf '[Commits to %s since this release]' "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
+          printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
+          printf '%s...%s)\n\n' "${{ steps.tag.outputs.tag }}" "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
 
       - name: Publish release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             ./.build/firmware.hex
+          fail_on_unmatched_files: true
+          name: ${{ steps.tag.outputs.tag }}
           tag_name: ${{ steps.tag.outputs.tag }}
           body_path: .build/CHANGELOG.md
           prerelease: ${{ github.ref != 'refs/heads/main' }}
