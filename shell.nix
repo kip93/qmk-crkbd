@@ -188,28 +188,42 @@ pkgs.mkShell {
           '# \033[3mSet up udev rules\033[0m ----------------------------------------------------------------------------------- #\n' ;
         (
           '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
-            su -c "
+            $(
+              (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas bash') ||
+                (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo bash') ||
+                (${coreutils}/bin/printf 'su')
+            ) -c "
               '${coreutils}/bin/mkdir' -p '/etc/udev/rules.d/' &&
               '${coreutils}/bin/cp' -rf \"''${_ROOT_DIR}/QMK/util/udev/\"* '/etc/udev/rules.d/'
             " &&
-            '${coreutils}/bin/printf' '\n/etc/udev/rules.d/ set up successfully\n' ;
+            '${coreutils}/bin/printf' '/etc/udev/rules.d/ set up successfully\n' ;
         ) || XC="$(( "''${XC}" + 0x10 ))" ;
         '${coreutils}/bin/printf' '\n' ;
       fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mResize /run/user/$UID\033[0m ------------------------------------------------------------------------------- #\n' ;
-      (
-        '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
-          su -c "
-            '${coreutils}/bin/mkdir' -p '/etc/systemd/logind.conf.d/' &&
-            '${coreutils}/bin/printf' '[Login]\nRuntimeDirectorySize=99%%\n' >'/etc/systemd/logind.conf.d/runtime_directory_size.conf'
-          " &&
-          '${coreutils}/bin/printf' '\n/run/user/$UID resized successfully\n' ;
-      ) || XC="$(( "''${XC}" + 0x20 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+      if [ "''${XC}" -eq 0 ] ; then
+        '${coreutils}/bin/printf' \
+          '# \033[3mResize /run/user/$UID\033[0m ------------------------------------------------------------------------------- #\n' ;
+        (
+          '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
+            $(
+              (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas sh') ||
+                (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo sh') ||
+                (${coreutils}/bin/printf 'su')
+            ) -c "
+              '${coreutils}/bin/mkdir' -p '/etc/systemd/logind.conf.d/' &&
+              '${coreutils}/bin/printf' '[Login]\nRuntimeDirectorySize=99%%\n' >'/etc/systemd/logind.conf.d/runtime_directory_size.conf'
+            " &&
+            '${coreutils}/bin/printf' '/run/user/$UID resized successfully\n' ;
+        ) || XC="$(( "''${XC}" + 0x20 ))" ;
+        '${coreutils}/bin/printf' '\n' ;
+      fi
 
-      '${coreutils}/bin/printf' '\033[3mSet up complete.\nPlease reboot your system to ensure that changes take effect.\033[0m\n'
+      if [ "''${XC}" -eq 0 ] ; then
+        '${coreutils}/bin/printf' \
+          '# \033[3mFinish\033[0m ---------------------------------------------------------------------------------------------- #\n' ;
+        '${coreutils}/bin/printf' '\033[3mSet up complete.\nPlease reboot your system to ensure that changes take effect.\033[0m\n\n'
+      fi
 
       return "''${XC}"
     }
