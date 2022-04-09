@@ -44,6 +44,13 @@ jobs:
           ) | nix-shell -p shellcheck --run 'shellcheck -'
         continue-on-error: true
 
+      - name: QMK Format
+        id: qmk-format
+        run: |
+          nix-shell --run format
+          git diff --exit-code --name-only
+        continue-on-error: true
+
       - name: QMK Lint
         id: qmk-lint
         run: |
@@ -69,7 +76,7 @@ jobs:
         continue-on-error: true
 
       - name: Check for failures
-        if: steps.shellcheck.outcome != 'success' || steps.qmk-lint.outcome != 'success' || steps.nixpkgs-fmt.outcome != 'success' || steps.nix-linter.outcome != 'success' || steps.vulnix.outcome != 'success'
+        if: steps.shellcheck.outcome != 'success' || steps.qmk-format.outcome != 'success' || steps.qmk-lint.outcome != 'success' || steps.nixpkgs-fmt.outcome != 'success' || steps.nix-linter.outcome != 'success' || steps.vulnix.outcome != 'success'
         run: exit 1
 
       - name: Push to cache

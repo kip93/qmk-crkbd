@@ -309,6 +309,40 @@ pkgs.mkShell {
       return "''${XC}"
     }
 
+    format() {
+      local XC=0
+
+      local KEYMAP_ID="$('${coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+
+      '${coreutils}/bin/printf' \
+        '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+      (
+        '${coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
+          '${coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
+          '${coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
+      ) || XC="$(( "''${XC}" + 0x01 ))" ;
+      '${coreutils}/bin/printf' '\n' ;
+
+      if [ "''${XC}" -eq 0 ] ; then
+        '${coreutils}/bin/printf' \
+          '# \033[3mFormat code\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+        (
+          cd "''${_ROOT_DIR}/QMK" &&
+            '${nix}/bin/nix-shell' --pure --run "qmk format-c $(${findutils}/bin/find -L "''${_ROOT_DIR}/keymap" -type f -regextype awk -regex '.+\.(h|hpp|c|cpp|inc)' -exec '${coreutils}/bin/printf' "'{}' " ';')" ;
+        ) || XC="$(( "''${XC}" + 0x02 ))" ;
+        '${coreutils}/bin/printf' '\n' ;
+      fi
+
+      '${coreutils}/bin/printf' \
+        '# \033[3mUnlink keymap\033[0m --------------------------------------------------------------------------------------- #\n' ;
+      (
+        '${git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df ;
+      ) || XC="$(( "''${XC}" + 0x04 ))" ;
+      '${coreutils}/bin/printf' '\n' ;
+
+      return "''${XC}"
+    }
+
     compile() {
       local XC=0
 
@@ -429,6 +463,8 @@ pkgs.mkShell {
     - Build the keymap into a flashable .hex file.
     .IP flash
     - Burn the firmware onto a keyboard.
+    .IP format
+    - Formats the keymap code.
     .IP help
     - Show help info on available commands.
     .IP init
@@ -475,6 +511,8 @@ pkgs.mkShell {
     init
     # Edit the keymap
     vim ./keymap.c
+    # Format code
+    format
     # Check code
     lint
     # Once done editing, compile the code
