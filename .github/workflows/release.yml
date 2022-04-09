@@ -1,7 +1,13 @@
 name: Release
 
 on:
-  push: { branches: [ main, develop ] }
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'keymap/**'
+      - 'QMK'
+      - 'shell.nix'
+      - '.github/workflows/release.yml'
   workflow_dispatch: {}
 
 concurrency:
