@@ -328,7 +328,9 @@ pkgs.mkShell {
           '# \033[3mFormat code\033[0m ----------------------------------------------------------------------------------------- #\n' ;
         (
           cd "''${_ROOT_DIR}/QMK" &&
-            '${nix}/bin/nix-shell' --pure --run "qmk format-c $(${findutils}/bin/find -L "''${_ROOT_DIR}/keymap" -type f -regextype awk -regex '.+\.(h|hpp|c|cpp|inc)' -exec '${coreutils}/bin/printf' "'{}' " ';')" ;
+            '${nix}/bin/nix-shell' --pure --run "${clang-tools}/bin/clang-format -i --verbose \$(
+              ${findutils}/bin/find -L 'keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" -type f -regextype awk -regex '.+\.(h|hpp|c|cpp|inc)'
+            )" ;
         ) || XC="$(( "''${XC}" + 0x02 ))" ;
         '${coreutils}/bin/printf' '\n' ;
       fi
