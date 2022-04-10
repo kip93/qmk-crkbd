@@ -1,7 +1,7 @@
 name: Update QMK
 
 on:
-  schedule: [ { cron: "42 */4 * * *" } ]
+  schedule: [ { cron: "42 * * * *" } ]  # Every hour, past 42 minutes to avoid peak times.
   workflow_dispatch: {}
 
 concurrency:
