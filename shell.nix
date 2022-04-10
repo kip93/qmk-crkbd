@@ -54,7 +54,7 @@ pkgs.mkShell {
     eval "$('${coreutils}/bin/dircolors' -b)"
 
     # Globals ######################################################################
-    _ROOT_DIR="$('${coreutils}/bin/pwd' -P)"
+    _ROOT_DIR='${toString ./.}'
 
     # Create a dynamic CLI prompt ##################################################
     _compute_prompt() {
