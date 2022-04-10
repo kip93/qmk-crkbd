@@ -136,7 +136,7 @@ pkgs.mkShell {
     alias ll="'${coreutils}/bin/ls' --color=auto -lAh"
 
     # Commands #####################################################################
-    setup() {
+    init() {
       local XC=0
 
       (
@@ -183,41 +183,57 @@ pkgs.mkShell {
         '${coreutils}/bin/printf' '\n' ;
       fi
 
-      if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mSet up udev rules\033[0m ----------------------------------------------------------------------------------- #\n' ;
-        (
-          '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
-            $(
-              (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas bash') ||
-                (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo bash') ||
-                (${coreutils}/bin/printf 'su')
-            ) -c "
-              '${coreutils}/bin/mkdir' -p '/etc/udev/rules.d/' &&
-              '${coreutils}/bin/cp' -rf \"''${_ROOT_DIR}/QMK/util/udev/\"* '/etc/udev/rules.d/'
-            " &&
-            '${coreutils}/bin/printf' '/etc/udev/rules.d/ set up successfully\n' ;
-        ) || XC="$(( "''${XC}" + 0x10 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
-      fi
+      '${coreutils}/bin/printf' \
+        '# \033[3mClean up workspace\033[0m ---------------------------------------------------------------------------------- #\n' ;
+      (
+        '${coreutils}/bin/rm' -rf -- "''${_ROOT_DIR}/keymap/" ;
+      ) || XC="$(( "''${XC}" + 0x10 ))" ;
+      '${coreutils}/bin/printf' '\n' ;
 
-      if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mResize /run/user/$UID\033[0m ------------------------------------------------------------------------------- #\n' ;
-        (
-          '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
-            $(
-              (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas sh') ||
-                (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo sh') ||
-                (${coreutils}/bin/printf 'su')
-            ) -c "
-              '${coreutils}/bin/mkdir' -p '/etc/systemd/logind.conf.d/' &&
-              '${coreutils}/bin/printf' '[Login]\nRuntimeDirectorySize=99%%\n' >'/etc/systemd/logind.conf.d/runtime_directory_size.conf'
-            " &&
-            '${coreutils}/bin/printf' '/run/user/$UID resized successfully\n' ;
-        ) || XC="$(( "''${XC}" + 0x20 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
-      fi
+      '${coreutils}/bin/printf' \
+        '# \033[3mCopy default keymap\033[0m --------------------------------------------------------------------------------- #\n' ;
+      (
+        '${coreutils}/bin/cp' -rf -- "''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default" "''${_ROOT_DIR}/keymap" ;
+      ) || XC="$(( "''${XC}" + 0x20 ))" ;
+      '${coreutils}/bin/printf' '\n' ;
+
+      return "''${XC}"
+    }
+
+    setup() {
+      local XC=0
+
+      '${coreutils}/bin/printf' \
+        '# \033[3mSet up udev rules\033[0m ----------------------------------------------------------------------------------- #\n' ;
+      (
+        '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
+          $(
+            (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas bash') ||
+              (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo bash') ||
+              (${coreutils}/bin/printf 'su')
+          ) -c "
+            '${coreutils}/bin/mkdir' -p '/etc/udev/rules.d/' &&
+            '${coreutils}/bin/cp' -rf \"''${_ROOT_DIR}/QMK/util/udev/\"* '/etc/udev/rules.d/'
+          " &&
+          '${coreutils}/bin/printf' '/etc/udev/rules.d/ set up successfully\n' ;
+      ) || XC="$(( "''${XC}" + 0x01 ))" ;
+      '${coreutils}/bin/printf' '\n' ;
+
+      '${coreutils}/bin/printf' \
+        '# \033[3mResize /run/user/$UID\033[0m ------------------------------------------------------------------------------- #\n' ;
+      (
+        '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
+          $(
+            (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas sh') ||
+              (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo sh') ||
+              (${coreutils}/bin/printf 'su')
+          ) -c "
+            '${coreutils}/bin/mkdir' -p '/etc/systemd/logind.conf.d/' &&
+            '${coreutils}/bin/printf' '[Login]\nRuntimeDirectorySize=99%%\n' >'/etc/systemd/logind.conf.d/runtime_directory_size.conf'
+          " &&
+          '${coreutils}/bin/printf' '/run/user/$UID resized successfully\n' ;
+      ) || XC="$(( "''${XC}" + 0x02 ))" ;
+      '${coreutils}/bin/printf' '\n' ;
 
       if [ "''${XC}" -eq 0 ] ; then
         '${coreutils}/bin/printf' \
@@ -228,31 +244,11 @@ pkgs.mkShell {
       return "''${XC}"
     }
 
-    init() {
-      local XC=0
-
-      '${coreutils}/bin/printf' \
-        '# \033[3mClean up workspace\033[0m ---------------------------------------------------------------------------------- #\n' ;
-      (
-        '${coreutils}/bin/rm' -rf -- "''${_ROOT_DIR}/keymap/" ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
-
-      '${coreutils}/bin/printf' \
-        '# \033[3mCopy default keymap\033[0m --------------------------------------------------------------------------------- #\n' ;
-      (
-        '${coreutils}/bin/cp' -rf -- "''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default" "''${_ROOT_DIR}/keymap" ;
-      ) || XC="$(( "''${XC}" + 0x02 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
-
-      return "''${XC}"
-    }
-
     update() {
       local XC=0
 
       '${coreutils}/bin/printf' \
-        '# \033[3mUpdate submodule\033[0m ------------------------------------------------------------------------------------ #\n' ;
+        '# \033[3mUpdate submodules\033[0m ----------------------------------------------------------------------------------- #\n' ;
       (
         '${git}/bin/git' -C "''${_ROOT_DIR}" submodule update --remote --progress ;
       ) || XC="$(( "''${XC}" + 0x01 ))" ;
@@ -470,7 +466,7 @@ pkgs.mkShell {
     .IP help
     - Show help info on available commands.
     .IP init
-    - Copy the default keymap to the workdir.
+    - Setup your workspace.
     .IP lint
     - Run a simple lint on the keymap source code.
     .IP setup
@@ -500,19 +496,19 @@ pkgs.mkShell {
     cd '<WORKDIR>'
     # Enter Nix+QMK toolbox
     nix-shell
+    # Initialise your workspace, including a default keymap
+    init
     # Set up environment
     setup
-    # Reboot to make setup changes take effect
+    # Reboot to make environment setup changes take effect
     sudo reboot now
 
     # After reboot, move back to workdir
     cd '<WORKDIR>'
     # Enter back into Nix+QMK toolbox
     nix-shell
-    # Copy the default keymap to workdir
-    init
     # Edit the keymap
-    vim ./keymap.c
+    vim ./keymap/keymap.c
     # Format code
     format
     # Check code

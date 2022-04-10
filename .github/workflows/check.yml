@@ -117,11 +117,12 @@ jobs:
             cp ./repo/shell.nix ./tmp/shell.nix ;
             cd ./tmp ;
             MANPAGER=cat nix-shell --run help ;
-            nix-shell --pure --run setup || true ;  # No root access, but the first few steps need to run
             nix-shell --pure --run init ;
+            # nix-shell --pure --run setup ;  # No root access, but not needed since we won't be flashing
             nix-shell --pure --run format ;
             nix-shell --pure --run lint ;
             nix-shell --pure --run compile ;
+            # nix-shell --pure --run flash ;  # Can't flash since there is no keyboard attached
             nix-shell --pure --run clean ;
           )
         continue-on-error: true
