@@ -20,7 +20,7 @@ jobs:
 
       - name: Update
         run: |
-          git submodule update --remote QMK
+          nix-shell --pure --run update
 
       - name: Set up Nix
         uses: cachix/install-nix-action@v15
