@@ -110,6 +110,7 @@ jobs:
         run: exit 1
 
       - name: Push to cache
+        working-directory: ./repo
         run: |
           nix-shell --pure shell.nix --run :
           nix-store -qR --include-outputs $(nix-instantiate shell.nix 2>/dev/null) | cachix push kip93
