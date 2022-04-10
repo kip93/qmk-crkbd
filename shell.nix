@@ -451,7 +451,7 @@ pkgs.mkShell {
     }
 
     help() {
-      '${coreutils}/bin/cat' <<EOF | '${man}/bin/man' -l - 2>/dev/null
+      '${coreutils}/bin/cat' <<EOF | MANPAGER="''${MANPAGER:-''${PAGER:-${most}/bin/most -s}}" '${man}/bin/man' -l - 2>/dev/null
     .TH "NIX+QMK" "1" "" "" "Nix+QMK toolbox"
     .\----------------------------------------------------------------------------\.
     .SH NAME
