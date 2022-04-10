@@ -42,7 +42,8 @@ jobs:
           nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
 
       - name: Validate
-        run: nix-shell --pure --run compile
+        run: |
+          nix-shell --pure --run compile
 
       - name: Commit
         run: |
