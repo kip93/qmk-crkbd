@@ -89,16 +89,21 @@ jobs:
 
       - name: Validate shell.nix logic
         id: validate
-        working-directory: ./tmp
+        working-directory: .
         run: |
-          cp ../repo/shell.nix ./shell.nix
-          MANPAGER=cat nix-shell --run help
-          nix-shell --pure --run setup
-          nix-shell --pure --run init
-          nix-shell --pure --run format
-          nix-shell --pure --run lint
-          nix-shell --pure --run compile
-          nix-shell --pure --run clean
+          (
+            mkdir -p ./tmp ;
+            cp ./repo/shell.nix ./tmp/shell.nix ;
+            cd ./tmp ;
+            MANPAGER=cat nix-shell --run help ;
+            nix-shell --pure --run setup ;
+            nix-shell --pure --run init ;
+            nix-shell --pure --run format ;
+            nix-shell --pure --run lint ;
+            nix-shell --pure --run compile ;
+            nix-shell --pure --run clean ;
+          )
+        continue-on-error: true
 
       - name: Check for failures
         if: steps.shellcheck.outcome != 'success' || steps.qmk-format.outcome != 'success' || steps.qmk-lint.outcome != 'success' || steps.nixpkgs-fmt.outcome != 'success' || steps.nix-linter.outcome != 'success' || steps.vulnix.outcome != 'success' || steps.validate.outcome != 'success'
