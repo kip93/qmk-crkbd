@@ -128,12 +128,12 @@ jobs:
 
       - name: Check for failures
         if: |
-          steps.shellcheck.outcome  != 'success' || \
-          steps.qmk-format.outcome  != 'success' || \
-          steps.qmk-lint.outcome    != 'success' || \
-          steps.nixpkgs-fmt.outcome != 'success' || \
-          steps.nix-linter.outcome  != 'success' || \
-          steps.vulnix.outcome      != 'success' || \
+          steps.shellcheck.outcome  != 'success' ||
+          steps.qmk-format.outcome  != 'success' ||
+          steps.qmk-lint.outcome    != 'success' ||
+          steps.nixpkgs-fmt.outcome != 'success' ||
+          steps.nix-linter.outcome  != 'success' ||
+          steps.vulnix.outcome      != 'success' ||
           steps.validate.outcome    != 'success'
         run: exit 1
 
