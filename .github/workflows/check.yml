@@ -96,7 +96,7 @@ jobs:
             cp ./repo/shell.nix ./tmp/shell.nix ;
             cd ./tmp ;
             MANPAGER=cat nix-shell --run help ;
-            nix-shell --pure --run setup ;
+            # nix-shell --pure --run setup ;  # No root access
             nix-shell --pure --run init ;
             nix-shell --pure --run format ;
             nix-shell --pure --run lint ;
