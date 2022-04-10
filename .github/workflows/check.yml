@@ -77,7 +77,28 @@ jobs:
         id: nix-linter
         working-directory: ./repo
         run: |
-          nix-shell -p nix-linter --run 'nix-linter -W no-AlphabeticalArgs -W no-AlphabeticalBindings -W BetaReduction -W DIYInherit -W EmptyInherit -W EmptyLet -W no-EmptyVariadicParamSet -W FreeLetInFunc -W LetInInheritRecset -W no-ListLiteralConcat -W NegateAtom -W SequentialLet -W SetLiteralUpdate -W UnfortunateArgName -W no-UnneededAntiquote -W UnneededRec -W UnusedArg -W UnusedLetBind -W UpdateEmptySet -v shell.nix'
+          nix-shell -p nix-linter --run ' \
+            nix-linter -W no-AlphabeticalArgs \
+                       -W no-AlphabeticalBindings \
+                       -W BetaReduction \
+                       -W DIYInherit \
+                       -W EmptyInherit \
+                       -W EmptyLet \
+                       -W no-EmptyVariadicParamSet \
+                       -W FreeLetInFunc \
+                       -W LetInInheritRecset \
+                       -W no-ListLiteralConcat \
+                       -W NegateAtom \
+                       -W SequentialLet \
+                       -W SetLiteralUpdate \
+                       -W UnfortunateArgName \
+                       -W no-UnneededAntiquote \
+                       -W UnneededRec \
+                       -W UnusedArg \
+                       -W UnusedLetBind \
+                       -W UpdateEmptySet \
+                       -v shell.nix \
+          '
         continue-on-error: true
 
       - name: Check shell.nix for vulnerabilities
