@@ -17,14 +17,13 @@
 
 // https://docs.qmk.fm/#/feature_macros
 
-# pragma once
+#pragma once
 
-# include QMK_KEYBOARD_H
+#include QMK_KEYBOARD_H
+#include "rgb_macros.h"
 
-# include "rgb_macros.h"
+////////////////////////////////////////////// Macro declarations ///////////////////////////////////////////////
 
-
-// Macro declarations.
 enum {
     BACKSPACE_DELETE = SAFE_RANGE,
     BACKSPACE_ESCAPE,
@@ -32,7 +31,9 @@ enum {
     RGB_COLOUR,
 };
 
-// Aliases.
+//////////////////////////////////////////////////// Aliases ////////////////////////////////////////////////////
+// Easier to put in the keymap
+
 enum {
     KC_BSDL = BACKSPACE_DELETE,
     KC_BSES = BACKSPACE_ESCAPE,
@@ -40,10 +41,11 @@ enum {
     KC_RGBC = RGB_COLOUR,
 };
 
+/////////////////////////////////////////////// Macro definitions ///////////////////////////////////////////////
 
 void custom_modifier(keyrecord_t *record, uint8_t mask, uint16_t kc1, uint16_t kc2) {
     static bool modifiers = false;
-    if (record -> event.pressed) {
+    if (record->event.pressed) {
         modifiers = get_mods() & mask;
         register_code(modifiers ? kc2 : kc1);
 
@@ -52,7 +54,6 @@ void custom_modifier(keyrecord_t *record, uint8_t mask, uint16_t kc1, uint16_t k
     }
 }
 
-// Macro definitions.
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
         case BACKSPACE_DELETE: {
@@ -68,7 +69,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
 
         case RGB_MODE: {
-            if (record -> event.pressed) {
+            if (record->event.pressed) {
                 rgb_next_mode();
             }
 
@@ -76,7 +77,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
 
         case RGB_COLOUR: {
-            if (record -> event.pressed) {
+            if (record->event.pressed) {
                 rgb_next_colour();
             }
 

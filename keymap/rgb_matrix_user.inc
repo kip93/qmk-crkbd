@@ -17,15 +17,14 @@
 
 // https://docs.qmk.fm/#/feature_rgb_matrix?id=custom-rgb-matrix-effects
 
-
 RGB_MATRIX_EFFECT(OFF)
-# ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
-    static bool OFF(effect_params_t *params) {
-        RGB_MATRIX_USE_LIMITS(led_min, led_max);
-        for (uint8_t i = led_min; i < led_max; ++i) {
-            rgb_matrix_set_color(i, 0x00, 0x00, 0x00);
-        }
-
-        return led_max < DRIVER_LED_TOTAL;
+#ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
+static bool OFF(effect_params_t *params) {
+    RGB_MATRIX_USE_LIMITS(led_min, led_max);
+    for (uint8_t i = led_min; i < led_max; ++i) {
+        rgb_matrix_set_color(i, 0x00, 0x00, 0x00);
     }
-# endif // RGB_MATRIX_CUSTOM_EFFECT_IMPLS
+
+    return led_max < DRIVER_LED_TOTAL;
+}
+#endif // RGB_MATRIX_CUSTOM_EFFECT_IMPLS

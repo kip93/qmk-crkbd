@@ -1,7 +1,13 @@
+cachix
 Corne
+github
 keycaps
 Keyhive
 keymap
 keymaps
 MCUs
+nix
+nixos
+nixpkgs
 ortholinear
+QMK

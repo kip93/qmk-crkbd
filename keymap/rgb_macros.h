@@ -18,31 +18,30 @@
 // https://docs.qmk.fm/#/feature_macros
 // https://docs.qmk.fm/#/feature_rgb_matrix
 
-# pragma once
+#pragma once
 
-# include QMK_KEYBOARD_H
+#include QMK_KEYBOARD_H
 
-
-void rgb_next_colour (void) {
-    static uint8_t colour = 0;
+void rgb_next_colour(void) {
+    static uint8_t       colour = 0;
     static const uint8_t hues[] = {
-        0x80,  // Cyan.
-        0xEB,  // Magenta.
-        0x03,  // Orange.
+        0x80, // Cyan.
+        0xEB, // Magenta.
+        0x03, // Orange.
 
         0x00, // White.
     };
 
-    uint8_t hue = hues[colour];
+    uint8_t hue        = hues[colour];
     uint8_t saturation = colour < sizeof(hues) - 1 ? 0xFF : 0x00;
-    uint8_t value = 0xFF;
+    uint8_t value      = 0xFF;
     rgblight_sethsv_noeeprom(hue, saturation, value);
 
     colour = (colour + 1) % sizeof(hues);
 }
 
-void rgb_next_mode (void) {
-    static uint8_t mode = 0;
+void rgb_next_mode(void) {
+    static uint8_t       mode    = 0;
     static const uint8_t modes[] = {
         RGB_MATRIX_SOLID_REACTIVE_SIMPLE,
         RGB_MATRIX_SOLID_COLOR,

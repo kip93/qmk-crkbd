@@ -15,38 +15,52 @@
 * <http://www.gnu.org/licenses/>.                                                                               *
 \***************************************************************************************************************/
 
-# pragma once
+#pragma once
 
-
-// ------------------------------------------------ Handiness ------------------------------------------------ //
+/////////////////////////////////////////////////// Handiness ///////////////////////////////////////////////////
 // https://docs.qmk.fm/#/config_options?id=setting-handedness
 
-# define MASTER_LEFT
+#define MASTER_LEFT
 
-// --------------------------------------------------- RGB --------------------------------------------------- //
+////////////////////////////////////////////////////// RGB //////////////////////////////////////////////////////
 // https://docs.qmk.fm/#/feature_rgb_matrix
 // https://github.com/qmk/qmk_firmware/tree/master/quantum/rgb_matrix_animations/
 
-# ifdef RGB_MATRIX_ENABLE
+#ifdef RGB_MATRIX_ENABLE
 
-// Global settings.
-#     define RGB_DISABLE_WHEN_USB_SUSPENDED  true                    // Disable lighting when suspended.
-#     define RGB_MATRIX_LED_FLUSH_LIMIT      (1000 / 24)             // 24 FPS animations.
-#     define RGB_MATRIX_LED_PROCESS_LIMIT    (DRIVER_LED_TOTAL / 9)  // Limit LED effects' overhead.
-#     define RGB_MATRIX_MAXIMUM_BRIGHTNESS   140                     // Max brightness (uint8_t, best if <= 150).
-#     define RGB_MATRIX_DISABLE_KEYCODES                             // Disable default RGB controls.
+//////////////
+// Settings //
+//////////////
 
-// RGB effects.
-#     define RGB_MATRIX_KEYPRESSES
-#     define RGB_MATRIX_KEYRELEASES
+// Disable lighting when suspended.
+#    define RGB_DISABLE_WHEN_USB_SUSPENDED true
+// 24 FPS animations.
+#    define RGB_MATRIX_LED_FLUSH_LIMIT (1000 / 24)
+// Limit LED effects' overhead.
+#    define RGB_MATRIX_LED_PROCESS_LIMIT (DRIVER_LED_TOTAL / 9)
+// Max brightness (uint8_t, best if <= 150).
+#    define RGB_MATRIX_MAXIMUM_BRIGHTNESS 140
+// Disable default RGB controls.
+#    define RGB_MATRIX_DISABLE_KEYCODES
 
-#     define ENABLE_RGB_MATRIX_SOLID_COLOR
-#     define ENABLE_RGB_MATRIX_SOLID_REACTIVE_SIMPLE
+/////////////
+// Effects //
+/////////////
 
-# endif  // RGB_MATRIX_ENABLE
+// React to keypresses.
+#    define RGB_MATRIX_KEYPRESSES
+#    define RGB_MATRIX_KEYRELEASES
 
-// -------------------------------------------------- Others ------------------------------------------------- //
+// Light up pressed key momentarily.
+#    define ENABLE_RGB_MATRIX_SOLID_REACTIVE_SIMPLE
 
-# define TAPPING_TERM  150
+// Simple solid colour lighting.
+#    define ENABLE_RGB_MATRIX_SOLID_COLOR
 
-# define PERMISSIVE_HOLD
+#endif // RGB_MATRIX_ENABLE
+
+//////////////////////////////////////////////////// Others /////////////////////////////////////////////////////
+
+#define TAPPING_TERM 150
+
+#define PERMISSIVE_HOLD

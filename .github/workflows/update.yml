@@ -1,7 +1,7 @@
 name: Update QMK
 
 on:
-  schedule: [ { cron: "42 */4 * * *" } ]
+  schedule: [ { cron: "42 * * * *" } ]  # Every hour, past 42 minutes to avoid peak times.
   workflow_dispatch: {}
 
 concurrency:
@@ -14,15 +14,46 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with: { ref: "develop" }
+        with:
+          ref: develop
+          submodules: recursive
 
       - name: Update
         run: |
-          git submodule update --init --remote QMK
+          nix-shell --pure --run update
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v15
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command
+
+      - name: Set up cache
+        uses: cachix/cachix-action@v10
+        with:
+          name: kip93
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          extraPullNames: nix-community
+          skipPush: true
+
+      - name: Print nixpkgs version
+        run: |
+          nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
+
+      - name: Validate
+        run: |
+          nix-shell --pure --run compile
 
       - name: Commit
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git remote set-url origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git remote set-url origin \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
           git commit -am "Update QMK - [GitHub Action]" && git push || true
+
+      - name: Push to cache
+        run: |
+          nix-shell --pure QMK/shell.nix --run :
+          nix-store -qR --include-outputs $(nix-instantiate QMK/shell.nix 2>/dev/null) | cachix push kip93
