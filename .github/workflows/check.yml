@@ -17,9 +17,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
         with:
           submodules: recursive
+          path: ./repo
 
       - name: Set up Nix
         uses: cachix/install-nix-action@v15
@@ -42,7 +42,7 @@ jobs:
 
       - name: Shellcheck shell.nix
         id: shellcheck
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
+        working-directory: ./repo
         run: |
           (
             printf '#!/bin/bash\n' ;
@@ -53,7 +53,7 @@ jobs:
 
       - name: QMK Format
         id: qmk-format
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
+        working-directory: ./repo
         run: |
           nix-shell --run format
           git diff --exit-code --name-only
@@ -61,37 +61,37 @@ jobs:
 
       - name: QMK Lint
         id: qmk-lint
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
+        working-directory: ./repo
         run: |
           nix-shell --run lint
         continue-on-error: true
 
       - name: Check shell.nix format
         id: nixpkgs-fmt
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
+        working-directory: ./repo
         run: |
           nix-shell -p nixpkgs-fmt --run 'nixpkgs-fmt --check shell.nix'
         continue-on-error: true
 
       - name: Lint shell.nix
         id: nix-linter
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
+        working-directory: ./repo
         run: |
           nix-shell -p nix-linter --run 'nix-linter -W no-AlphabeticalArgs -W no-AlphabeticalBindings -W BetaReduction -W DIYInherit -W EmptyInherit -W EmptyLet -W no-EmptyVariadicParamSet -W FreeLetInFunc -W LetInInheritRecset -W no-ListLiteralConcat -W NegateAtom -W SequentialLet -W SetLiteralUpdate -W UnfortunateArgName -W no-UnneededAntiquote -W UnneededRec -W UnusedArg -W UnusedLetBind -W UpdateEmptySet -v shell.nix'
         continue-on-error: true
 
       - name: Check shell.nix for vulnerabilities
         id: vulnix
-        working-directory: ${{ format('{0}/{1}',runner.temp,'repo') }}
+        working-directory: ./repo
         run: |
           nix-shell -p vulnix --run 'vulnix -f shell.nix'
         continue-on-error: true
 
       - name: Validate shell.nix logic
         id: validate
-        working-directory: ${{ format('{0}/{1}',runner.temp,'tmp') }}
+        working-directory: ./tmp
         run: |
-          cp '${{ runner.temp }}/repo/shell.nix' '${{ runner.temp }}/tmp/shell.nix'
+          cp ../repo/shell.nix ./shell.nix
           MANPAGER=cat nix-shell --run help
           nix-shell --pure --run setup
           nix-shell --pure --run init
