@@ -115,6 +115,7 @@ jobs:
           (
             mkdir -p ./tmp ;
             cp ./repo/shell.nix ./tmp/shell.nix ;
+            sed -i -E 's|\bKEYBOARD\b\s*=\s*".+?"\s*;|KEYBOARD = "ergodox_ez";|' ./tmp/shell.nix ;
             cd ./tmp ;
             MANPAGER=cat nix-shell --run help ;
             nix-shell --pure --run init ;
