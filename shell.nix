@@ -193,7 +193,7 @@ pkgs.mkShell {
       '${coreutils}/bin/printf' \
         '# \033[3mCopy default keymap\033[0m --------------------------------------------------------------------------------- #\n' ;
       (
-        '${coreutils}/bin/cp' -rf -- "''${_ROOT_DIR}/QMK/keyboards/crkbd/keymaps/default" "''${_ROOT_DIR}/keymap" ;
+        '${coreutils}/bin/cp' -rf -- "''${_ROOT_DIR}/QMK/keyboards/${KEYBOARD}/keymaps/default" "''${_ROOT_DIR}/keymap" ;
       ) || XC="$(( "''${XC}" + 0x20 ))" ;
       '${coreutils}/bin/printf' '\n' ;
 
