@@ -379,7 +379,7 @@ pkgs.mkShell {
           '# \033[3mExtract HEX file\033[0m ------------------------------------------------------------------------------------ #\n' ;
         (
           '${coreutils}/bin/mkdir' -p "''${_ROOT_DIR}/.build" &&
-            '${coreutils}/bin/ls' "''${_ROOT_DIR}/QMK/.build"/*.hex "''${_ROOT_DIR}/QMK/.build"/*.bin |
+            '${findutils}/bin/find' "''${_ROOT_DIR}/QMK/.build" -type f -regextype awk -iregex '^.*\.(hex|bin)$' |
               '${coreutils}/bin/head' -1 |
               '${findutils}/bin/xargs' -i cp -f -- '{}' "''${_ROOT_DIR}/.build/firmware.hex" &&
             '${coreutils}/bin/printf' 'Extracted .build/firmware.hex\n' ;
