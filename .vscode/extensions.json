@@ -1,0 +1,22 @@
+{  // Suggested extensions
+  "recommendations": [
+    // General
+    "medo64.render-crlf",
+    "tumido.cron-explained",
+
+    // Git
+    "cschleiden.vscode-github-actions",
+    "eamodio.gitlens",
+
+    // Markdown
+    "robole.marky-stats",
+    "valentjn.vscode-ltex",
+
+    // Nix
+    "bbenoist.Nix",
+    "jnoortheen.nix-ide",
+
+    // YAML
+    "redhat.vscode-yaml",
+  ]
+}
