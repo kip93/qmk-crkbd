@@ -50,7 +50,7 @@ pkgs.mkShell {
     HISTFILESIZE=2000
 
     # Extra bling for some commands ################################################
-    eval "$(SHELL='${bashInteractive}/bin/bash' '${lesspipe}/bin/lesspipe.sh')"
+    eval "$(SHELL='${bash_5}/bin/bash' '${lesspipe}/bin/lesspipe.sh')"
     eval "$('${coreutils}/bin/dircolors' -b)"
 
     # Globals ######################################################################
@@ -379,7 +379,7 @@ pkgs.mkShell {
           '# \033[3mExtract HEX file\033[0m ------------------------------------------------------------------------------------ #\n' ;
         (
           '${coreutils}/bin/mkdir' -p "''${_ROOT_DIR}/.build" &&
-            '${coreutils}/bin/ls' "''${_ROOT_DIR}/QMK/.build"/*.hex |
+            '${coreutils}/bin/ls' "''${_ROOT_DIR}/QMK/.build"/*.hex "''${_ROOT_DIR}/QMK/.build"/*.bin |
               '${coreutils}/bin/head' -1 |
               '${findutils}/bin/xargs' -i cp -f -- '{}' "''${_ROOT_DIR}/.build/firmware.hex" &&
             '${coreutils}/bin/printf' 'Extracted .build/firmware.hex\n' ;
