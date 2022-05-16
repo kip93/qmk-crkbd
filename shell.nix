@@ -779,7 +779,7 @@ pkgs.mkShell {
     .nf
 
         +-------------------------- A simple hardcoded value, to serve as a
-        |                           hint that we are currently inside the
+        |                           hint that we are currently inside the QMK
         |                           toolbox environment.
         |
         |       +------------------ The current ref of the repo. May be a
@@ -831,7 +831,7 @@ pkgs.mkShell {
       ${coreutils}/bin/printf '\033[0m   \033[1;30m.-------------.\033[0m\n'
       ${coreutils}/bin/printf '\033[0m - \033[1;30m|             | \033[0m-   \033[3mWelcome to this (unofficial) \033[1mNix+QMK toolbox\033[0;3m.\033[0m\n'
       ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-\n'
-      ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-   \033[3mAn opinionated set of scripts for standalone QMK keymaps\033[0m\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-   \033[3mAn opinionated set of scripts for standalone QMK keymaps.\033[0m\n'
       ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|__|__|\033[0;1;30m   | \033[0m-\n'
       ${coreutils}/bin/printf '\033[0m - \033[1;30m|      \033[0;1m|\033[0;1;30m      | \033[0m-\n'
       ${coreutils}/bin/printf '\033[0m - \033[1;30m|_____________| \033[0m-\n'
