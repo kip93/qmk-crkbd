@@ -6,7 +6,7 @@ on:
     paths:
       - 'keymap/**'
       - 'QMK'
-      - 'shell.nix'
+      - '**/*.nix'
       - '.github/workflows/check.yml'
   workflow_dispatch: {}
 
@@ -21,14 +21,14 @@ jobs:
           submodules: recursive
           path: ./repo
 
-      - name: Set up Nix
+      - name: "Nix: set up"
         uses: cachix/install-nix-action@v15
         with:
           nix_path: nixpkgs=channel:nixos-unstable
           extra_nix_config: |
             experimental-features = nix-command
 
-      - name: Set up cache
+      - name: "Nix: cache set up"
         uses: cachix/cachix-action@v10
         with:
           name: kip93
@@ -36,111 +36,72 @@ jobs:
           extraPullNames: nix-community
           skipPush: true
 
-      - name: Print nixpkgs version
+      - name: "Nix: version"
         run: |
           nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
+          nix-env --version
 
-      - name: Shellcheck shell.nix
-        id: shellcheck
+      - name: "Nix: format"
+        id: nix-format
         working-directory: ./repo
         run: |
-          (
-            printf '#!/bin/bash\n' ;
-            nix-shell --pure shell.nix --run : >/dev/null ;
-            nix-instantiate shell.nix 2>/dev/null | xargs -i sed '1,5d' {} ;
-          ) | nix-shell -p shellcheck --run 'shellcheck -'
+          nix-build scripts/nix-format.nix | xargs sh -c
         continue-on-error: true
 
-      - name: QMK Format
+      - name: "Nix: lint"
+        id: nix-lint
+        working-directory: ./repo
+        run: |
+          nix-build scripts/nix-lint.nix | xargs sh -c
+        continue-on-error: true
+
+      - name: "Nix: shellcheck"
+        id: nix-shellcheck
+        working-directory: ./repo
+        run: |
+          nix-build scripts/nix-shellcheck.nix | xargs sh -c
+        continue-on-error: true
+
+      - name: "Nix: vulnerabilities"
+        id: nix-vulnerabilities
+        working-directory: ./repo
+        run: |
+          nix-build scripts/nix-vulnerabilities.nix | xargs sh -c
+        continue-on-error: true
+
+      - name: "Nix: logic"
+        id: nix-logic
+        working-directory: ./repo
+        run: |
+          nix-build scripts/nix-logic.nix | TMPDIR=../tmp xargs sh -c
+        continue-on-error: true
+
+      - name: "QMK: format"
         id: qmk-format
         working-directory: ./repo
         run: |
-          nix-shell --run format
-          git diff --exit-code --name-only
+          nix-build scripts/qmk-format.nix | xargs sh -c
         continue-on-error: true
 
-      - name: QMK Lint
+      - name: "QMK: lint"
         id: qmk-lint
         working-directory: ./repo
         run: |
-          nix-shell --run lint
-        continue-on-error: true
-
-      - name: Check shell.nix format
-        id: nixpkgs-fmt
-        working-directory: ./repo
-        run: |
-          nix-shell -p nixpkgs-fmt --run 'nixpkgs-fmt --check shell.nix'
-        continue-on-error: true
-
-      - name: Lint shell.nix
-        id: nix-linter
-        working-directory: ./repo
-        run: |
-          nix-shell -p nix-linter --run ' \
-            nix-linter -W no-AlphabeticalArgs \
-                       -W no-AlphabeticalBindings \
-                       -W BetaReduction \
-                       -W DIYInherit \
-                       -W EmptyInherit \
-                       -W EmptyLet \
-                       -W no-EmptyVariadicParamSet \
-                       -W FreeLetInFunc \
-                       -W LetInInheritRecset \
-                       -W no-ListLiteralConcat \
-                       -W NegateAtom \
-                       -W SequentialLet \
-                       -W SetLiteralUpdate \
-                       -W UnfortunateArgName \
-                       -W no-UnneededAntiquote \
-                       -W UnneededRec \
-                       -W UnusedArg \
-                       -W UnusedLetBind \
-                       -W UpdateEmptySet \
-                       -v shell.nix \
-          '
-        continue-on-error: true
-
-      - name: Check shell.nix for vulnerabilities
-        id: vulnix
-        working-directory: ./repo
-        run: |
-          nix-shell -p vulnix --run 'vulnix -f shell.nix'
-        continue-on-error: true
-
-      - name: Validate shell.nix logic
-        id: validate
-        working-directory: .
-        run: |
-          (
-            mkdir -p ./tmp ;
-            cp ./repo/shell.nix ./tmp/shell.nix ;
-            sed -i -E 's|\bKEYBOARD\b\s*=\s*".+?"\s*;|KEYBOARD = "ergodox_ez";|' ./tmp/shell.nix ;
-            cd ./tmp ;
-            MANPAGER=cat nix-shell --run help ;
-            nix-shell --pure --run init ;
-            # nix-shell --pure --run setup ;  # No root access, but not needed since we won't be flashing
-            nix-shell --pure --run format ;
-            nix-shell --pure --run lint ;
-            nix-shell --pure --run compile ;
-            # nix-shell --pure --run flash ;  # Can't flash since there is no keyboard attached
-            nix-shell --pure --run clean ;
-          )
+          nix-build scripts/qmk-lint.nix | xargs sh -c
         continue-on-error: true
 
       - name: Check for failures
         if: |
-          steps.shellcheck.outcome  != 'success' ||
-          steps.qmk-format.outcome  != 'success' ||
-          steps.qmk-lint.outcome    != 'success' ||
-          steps.nixpkgs-fmt.outcome != 'success' ||
-          steps.nix-linter.outcome  != 'success' ||
-          steps.vulnix.outcome      != 'success' ||
-          steps.validate.outcome    != 'success'
+          steps.nix-format.outcome          != 'success' ||
+          steps.nix-lint.outcome            != 'success' ||
+          steps.nix-shellcheck.outcome      != 'success' ||
+          steps.nix-vulnerabilities.outcome != 'success' ||
+          steps.nix-logic.outcome           != 'success' ||
+          steps.qmk-format.outcome          != 'success' ||
+          steps.qmk-lint.outcome            != 'success'
         run: exit 1
 
       - name: Push to cache
         working-directory: ./repo
         run: |
-          nix-shell --pure shell.nix --run :
-          nix-store -qR --include-outputs $(nix-instantiate shell.nix 2>/dev/null) | cachix push kip93
+          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{}' kip93

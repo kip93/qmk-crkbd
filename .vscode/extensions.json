@@ -1,6 +1,7 @@
 {  // Suggested extensions
   "recommendations": [
     // General
+    "aaron-bond.better-comments",
     "medo64.render-crlf",
     "tumido.cron-explained",
 
@@ -15,6 +16,12 @@
     // Nix
     "bbenoist.Nix",
     "jnoortheen.nix-ide",
+
+    // Shell
+    "timonwong.shellcheck",
+
+    // SVG
+    "jock.svg",
 
     // YAML
     "redhat.vscode-yaml",

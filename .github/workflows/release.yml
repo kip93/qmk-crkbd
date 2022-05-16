@@ -99,6 +99,4 @@ jobs:
 
       - name: Push to cache
         run: |
-          nix-shell --pure shell.nix --run :
-          nix-shell --pure QMK/shell.nix --run :
-          nix-store -qR --include-outputs $(nix-instantiate shell.nix QMK/shell.nix 2>/dev/null) | cachix push kip93
+          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{}' kip93

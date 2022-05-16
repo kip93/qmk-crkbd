@@ -1,9 +1,31 @@
 {
+    // General
+    "better-comments.multilineComments": true,
+    "better-comments.tags": [
+        {
+            "tag": "TODO",
+            "color": "#DF4C9D",
+            "strikethrough": false,
+            "underline": false,
+            "backgroundColor": "transparent",
+            "bold": true,
+            "italic": false,
+        },
+    ],
+    "code-eol.decorateBeforeEol": false,
     "code-eol.highlightExtraWhitespace": true,
     "code-eol.highlightNonDefault": true,
     "cron-explained.codeLens.enabled": true,
+    "cron-explained.codeLens.showCommentAction": false,
+    "cron-explained.codeLens.showTranscript": true,
+    "cron-explained.cronstrueOptions.dayOfWeekStartIndexZero": true,
+    "cron-explained.cronstrueOptions.monthStartIndexZero": false,
+    "cron-explained.cronstrueOptions.use24HourTimeFormat": true,
+    "cron-explained.cronstrueOptions.verbose": false,
+    "cron-explained.hover.enabled": false,
     "diffEditor.ignoreTrimWhitespace": false,
     "editor.insertSpaces": true,
+    "editor.renderWhitespace": "all",
     "files.associations": {
         "*.c": "c",
         "*.cpp": "cpp",
@@ -11,16 +33,39 @@
         "*.hpp": "cpp",
         "*.inc": "c",
     },
+    "files.exclude": {
+        "**/.DS_Store": false,
+        "**/Thumbs.db": false,
+    },
     "files.insertFinalNewline": true,
     "files.trimFinalNewlines": true,
     "files.trimTrailingWhitespace": true,
-    "json.maxItemsComputed": 999999,
+    "search.exclude": {
+        ".build": true,
+        "QMK": true,
+    },
+
+    // Git
+    "git.allowForcePush": false,
+    "git.allowNoVerifyCommit": false,
+    "git.autofetch": true,
+    "git.autofetchPeriod": 120,
+    "git.autoStash": true,
+    "git.enabled": true,
+    "git.enableSmartCommit": false,
+    "git.inputValidationLength": 72,
+    "git.inputValidationSubjectLength": 50,
+    "git.pruneOnFetch": true,
+    "git.pullTags": true,
+    "git.requireGitUserConfig": true,
+    "git.suggestSmartCommit": false,
+
+    // MarkDown
     "ltex.additionalRules.enablePickyRules": true,
     "ltex.additionalRules.motherTongue": "en-GB",
+    "ltex.checkFrequency": "edit",
     "ltex.completionEnabled": true,
-    "ltex.enabled": [
-        "markdown",
-    ],
+    "ltex.enabled": ["markdown"],
     "ltex.language": "en-GB",
     "ltex.statusBarItem": true,
     "markyMarkdown.statsAlignment": "Right",
@@ -30,4 +75,30 @@
     "markyMarkdown.statsShowLines": true,
     "markyMarkdown.statsShowWords": true,
     "markyMarkdown.statsWordsPerMinute": 150,
+
+    // Nix
+    "nix.enableLanguageServer": true,
+    "nixEnvSelector.suggestion": true,
+    "nixEnvSelector.nixFile": "${workspaceFolder}/env.nix",
+
+    // Shell
+    "shellcheck.enable": true,
+    "shellcheck.enableQuickFix": true,
+    "shellcheck.run": "onType",
+    "shellcheck.useWorkspaceRootAsCwd": true,
+
+    // SVG
+    "svg.completion.showAdvanced": true,
+    "svg.pathDataHighlight": true,
+    "svg.preview.background": "dark-transparent",
+    "svg.preview.mode": "img",
+
+    // YAML
+    "yaml.completion": true,
+    "yaml.format.bracketSpacing": true,
+    "yaml.format.printWidth": 120,
+    "yaml.format.proseWrap": "preserve",
+    "yaml.format.singleQuote": false,
+    "yaml.validate": true,
+    "yaml.yamlVersion": "1.2",
 }

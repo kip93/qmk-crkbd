@@ -23,13 +23,14 @@ let
 
   # Name of the folder inside the QMK submodule
   # e.g., `ergodox_ez`, `0xcb/1337`, et cetera
-  KEYBOARD = "crkbd";
-
-  # Number of threads to be used when compiling.
-  PARALLEL = 16;
+  KEYBOARD = "crkbd/rev1";
 
 in
 pkgs.mkShell {
+  ###############
+  # Environment #
+  ###############
+
   nativeBuildInputs = with pkgs; [
     cacert
     git
@@ -37,421 +38,662 @@ pkgs.mkShell {
     openssh
   ];
 
+  ###########
+  # Scripts #
+  ###########
+
   shellHook = with pkgs; ''
     # Bash configs #################################################################
+
+    # History management
     shopt -s histappend
     shopt -s cmdhist
-    shopt -s checkwinsize
-    shopt -s globstar
-    shopt -s dotglob
 
     HISTCONTROL=ignoreboth
     HISTSIZE=1000
     HISTFILESIZE=2000
 
-    # Extra bling for some commands ################################################
-    eval "$(SHELL='${bash_5}/bin/bash' '${lesspipe}/bin/lesspipe.sh')"
-    eval "$('${coreutils}/bin/dircolors' -b)"
+    # Keep track of window size
+    shopt -s checkwinsize
 
-    # Globals ######################################################################
-    _ROOT_DIR='${toString ./.}'
+    # Globbing
+    shopt -s globstar
+    shopt -s dotglob
+
+    # Extra bling for some commands ################################################
+
+    # Add colour to less
+    eval "$(SHELL=${bash}/bin/bash ${lesspipe}/bin/lesspipe.sh)"
+
+    # Add colour to ls
+    eval "$(${coreutils}/bin/dircolors -b)"
+
+    # Functions ####################################################################
+
+    #-------------------------------------------------------------------------------
+    # Check if the system has root access.
+    # Currently supported methods are sudo, doas, or su.
+    #
+    # Return:
+    #   0 if the root user is accessible, 1 otherwise.
+    #-------------------------------------------------------------------------------
+    _can_root() {
+      if [ "$(${which}/bin/which doas sudo su 2>/dev/null | ${coreutils}/bin/wc -l)" -gt 0 ] ; then
+        return 0
+      else
+        return 1
+      fi
+    }
+
+    #-------------------------------------------------------------------------------
+    # Clean the QMK submodule.
+    #-------------------------------------------------------------------------------
+    _clean_qmk() {
+      ${git}/bin/git -C '${toString ./QMK}' clean -df
+    }
+
+    #-------------------------------------------------------------------------------
+    # Get the ref of a git repo, or <N/A> if no status is available.
+    #
+    # Args:
+    #   $1 - The repo whose ref is fetched.
+    #
+    # Output:
+    #   The git ref.
+    #-------------------------------------------------------------------------------
+    _git_ref() {
+      local ref
+      ref="$(
+        if _is_git "''${1}" ; then
+          ${git}/bin/git -C "''${1}" rev-parse --abbrev-ref HEAD 2>/dev/null || true ;
+        else
+          ${coreutils}/bin/printf '<N/A>' ;
+        fi ;
+      )"
+
+      [ "''${ref}" = "HEAD" ] && ref="$(
+        ${git}/bin/git -C "''${1}" rev-parse --short HEAD 2>/dev/null ||
+        ${git}/bin/git -C "''${1}" branch --show-current ;
+      )"
+
+      ${coreutils}/bin/printf '%s\n' "''${ref}"
+    }
+
+    #-------------------------------------------------------------------------------
+    # Get the status of a git repo.
+    #
+    # Args:
+    #   $1 - The repo whose status is checked.
+    #
+    # Output:
+    #   The status of the repo, in a parseable format.
+    #-------------------------------------------------------------------------------
+    _git_status() {
+      _is_git "''${1}" && ${git}/bin/git -C "''${1}" status --porcelain
+    }
+
+    #-------------------------------------------------------------------------------
+    # Check if a directory is a git repo.
+    #
+    # Args:
+    #   $1 - The path to be checked.
+    #
+    # Return:
+    #   0 if it is a git repo, non-zero otherwise.
+    #-------------------------------------------------------------------------------
+    _is_git() {
+      ${git}/bin/git -C "''${1}" rev-parse --git-dir >/dev/null 2>&1 &&
+      [ "$(${git}/bin/git -C "''${1}" rev-parse --show-toplevel)" -ef "''${1}" ]
+    }
+
+    #-------------------------------------------------------------------------------
+    # Get the keymap of an otherwise clean QMK submodule.
+    #
+    # Output:
+    #   The full path to the keymap.
+    #-------------------------------------------------------------------------------
+    _keymap_path() {
+      printf '${toString ./QMK}/'
+      _git_status '${toString ./QMK}' |
+        ${coreutils}/bin/cut -d' ' -f2
+    }
+
+    #-------------------------------------------------------------------------------
+    # Create a symlink of the keymap.
+    #
+    # Args:
+    #   $1 - The name of the keymap to be created.
+    #-------------------------------------------------------------------------------
+    _link_keymap() {
+      _qmk_exec "new-keymap -kb '${KEYBOARD}' -km ''\'''${1}'" >/dev/null 2>&1
+      _keymap_path |
+        ${coreutils}/bin/head -c -2 |
+        ${findutils}/bin/xargs -I{} ${bash}/bin/bash -c "
+          ${coreutils}/bin/rm -rf -- '{}' &&
+          ${coreutils}/bin/ln -sf -- '${toString ./keymap}' '{}' ;
+        " ;
+    }
+
+    #-------------------------------------------------------------------------------
+    # Print a header text of fixed width.
+    #
+    # Args:
+    #   $1 - The text of the header.
+    #
+    # Output:
+    #   An 80 char wide header.
+    #-------------------------------------------------------------------------------
+    _print_header() {
+      ${coreutils}/bin/printf \
+        '# ---------------------------------------------------------------------------- #\r# \033[3m%s\033[0m \n' \
+        "''${1}"
+    }
+
+    #-------------------------------------------------------------------------------
+    # Run a command as root.
+    # Currently supported methods are sudo, doas, or su.
+    #
+    # Args:
+    #   $1 - The command to execute.
+    #-------------------------------------------------------------------------------
+    _root_exec() {
+      if ${which}/bin/which doas >/dev/null 2>&1 ; then
+        doas ${bash}/bin/bash -c "''${1}"
+      elif ${which}/bin/which sudo >/dev/null 2>&1 ; then
+        sudo ${bash}/bin/bash -c "''${1}"
+      elif ${which}/bin/which su >/dev/null 2>&1 ; then
+        su -c "''${1}"
+      fi
+    }
+
+    #-------------------------------------------------------------------------------
+    # Execute a QMK command.
+    #
+    # Args:
+    #   $1 - The QMK command and its arguments.
+    #-------------------------------------------------------------------------------
+    _qmk_exec() {
+      (
+        cd '${toString ./QMK}' &&
+        ${nix}/bin/nix-shell --pure --run "qmk --color ''${1}" ;
+      )
+    }
+
+    #-------------------------------------------------------------------------------
+    # Create a random UUID.
+    #
+    # Output:
+    #   An UUID.
+    #-------------------------------------------------------------------------------
+    _uuid() {
+      ${coreutils}/bin/cat /proc/sys/kernel/random/uuid
+    }
 
     # Create a dynamic CLI prompt ##################################################
+
+    #-------------------------------------------------------------------------------
+    # Create the git status part of the PS1.
+    #
+    # Output:
+    #   A coloured git ref, or <N/A> if no status is git repo is found.
+    #-------------------------------------------------------------------------------
+    _compute_git_prompt() {
+      # Get the repo status
+      local git_status
+      git_status="$(_git_status '${toString ./.}')"
+
+      # Get the ref, or <N/A>
+      local ref
+      ref="$(_git_ref '${toString ./.}')"
+
+      # Assign a colour to the "cleaniness" of the repo
+      local colour
+      colour="$(
+        if _is_git '${toString ./.}' ; then
+          # No repo -> red
+          ${coreutils}/bin/printf 9 ;
+        elif [ \
+          "$(
+            ${coreutils}/bin/printf '%s\n' "''${git_status}" |
+              ${gnused}/bin/sed '/^\s*$/d' |
+              ${coreutils}/bin/wc -l ;
+          )" -eq 0 \
+        ] ; then
+          # Clean repo -> green
+          ${coreutils}/bin/printf 10 ;
+        elif
+          # Unstaged changes -> red
+          ${coreutils}/bin/printf '%s\n' "''${git_status}" |
+            ${gnugrep}/bin/grep -q '^.\S' ; then
+          ${coreutils}/bin/printf 9 ;
+        else
+          # Staged changes -> yellow
+          ${coreutils}/bin/printf 11 ;
+        fi ;
+      )"
+
+      # Output
+      ${coreutils}/bin/printf "\[\033[1;38;5;%sm\]%s\[$(${ncurses}/bin/tput sgr0)\]" "''${colour}" "''${ref}"
+    }
+
+    #-------------------------------------------------------------------------------
+    # Create the path part of the PS1.
+    #
+    # Output:
+    #   A coloured path string, relative to the root of the project (or absolute
+    #   path if outside of said folder).
+    #-------------------------------------------------------------------------------
+    _compute_path_prompt() {
+      # Get the current relative path
+      local path
+      path="$(
+        ${coreutils}/bin/realpath -m --relative-to='${toString ./.}' "$(${coreutils}/bin/pwd)"
+      )/"
+
+      # If the path is outside of the root dir, use absoule path instead
+      [[ "''${path}" =~ ^\.\..+$    ]] && path="$(${coreutils}/bin/pwd)"
+
+      # Make relative paths more readable
+      [[ "''${path}" =~ ^/.+$|^\./$ ]] || path="./''${path}"
+
+      # Output
+      ${coreutils}/bin/printf "\[\033[1;38;5;12m\]%s\[$(${ncurses}/bin/tput sgr0)\]" "''${path}"
+    }
+
+    #-------------------------------------------------------------------------------
+    # Create the exit code part of the PS1.
+    #
+    # Args:
+    #   $1 - Exit code.
+    #
+    # Output:
+    #   A coloured HEX exit code.
+    #-------------------------------------------------------------------------------
+    _compute_xc_prompt() {
+      # Assign colour depending on exit code value
+      local colour
+      colour="$(
+        if [ "''${1}" -eq 0 ] ; then
+          # Success -> green
+          ${coreutils}/bin/printf 10 ;
+        elif [ "''${1}" -lt 128 ] ; then
+          # Error -> red
+          ${coreutils}/bin/printf 9 ;
+        else
+          # Signal -> yellow
+          ${coreutils}/bin/printf 11 ;
+        fi ;
+      )"
+
+      # Output
+      ${coreutils}/bin/printf "\[\033[38;5;%sm\]0x%02X\[\033[1m\]\[$(${ncurses}/bin/tput sgr0)\]" "''${colour}" "''${1}"
+    }
+
+    #-------------------------------------------------------------------------------
+    # Create a dynamic PS1.
+    #-------------------------------------------------------------------------------
     _compute_prompt() {
       # First of all, get the exit code of the command before it is lost.
       local XC=$?
-      local XC_colour="$(
-        if [ "''${XC}" -eq 0 ] ; then
-          '${coreutils}/bin/printf' 10 ;
-        elif [ "''${XC}" -lt 128 ] ; then
-          '${coreutils}/bin/printf' 9  ;
-        else
-          '${coreutils}/bin/printf' 11 ;
-        fi ;
-      )"
-      local XC_PS1="\[\033[38;5;''${XC_colour}m\]$('${coreutils}/bin/printf' '0x%02X' "''${XC}")\[\033[1m\]\[$('${ncurses}/bin/tput' sgr0)\]"
 
-      # Compute the path relative to the root of the project (or absolute path if outside of said folder).
-      local path="$(
-        '${coreutils}/bin/realpath' -m --relative-to="''${_ROOT_DIR}" "$('${coreutils}/bin/pwd')"
-      )/"
-      [[ "''${path}" =~ ^\.\..+$    ]] && path="$('${coreutils}/bin/pwd')"
-      [[ "''${path}" =~ ^/.+$|^\./$ ]] || path="./''${path}"
-      local path_PS1="\[\033[1;38;5;12m\]''${path}\[$('${ncurses}/bin/tput' sgr0)\]"
+      # Compute the different parts of the PS1
+      local nix_PS1
+      # shellcheck disable=SC2016
+      nix_PS1='\[\033[1;38;5;13m\]NIX+QMK\[$(${ncurses}/bin/tput sgr0)\]'
+      local git_PS1
+      git_PS1="$(_compute_git_prompt)"
+      local path_PS1
+      path_PS1="$(_compute_path_prompt)"
+      local XC_PS1
+      XC_PS1="$(_compute_xc_prompt "''${XC}")"
 
-      # Check the branch of the repo and its status.
-      local is_git="$(
-        '${git}/bin/git' -C "''${_ROOT_DIR}" rev-parse --git-dir >/dev/null 2>&1 &&
-          [ "$('${git}/bin/git' -C "''${_ROOT_DIR}" rev-parse --show-toplevel)" -ef "''${_ROOT_DIR}" ] &&
-          '${coreutils}/bin/printf' true ;
-      )"
-      local git_status="$(
-        [ ! -z "''${is_git}" ] &&
-          '${git}/bin/git' -C "''${_ROOT_DIR}" status --porcelain ;
-      )"
-      local ref="$(
-        if [ ! -z "''${is_git}" ] ; then
-          '${git}/bin/git' -C "''${_ROOT_DIR}" rev-parse --abbrev-ref HEAD 2>/dev/null || true ;
-        else
-          '${coreutils}/bin/printf' '<N/A>' ;
-        fi ;
-      )"
-      [ "''${ref}" = "HEAD" ] && ref="$(
-        '${git}/bin/git' -C "''${_ROOT_DIR}" rev-parse --short HEAD 2>/dev/null ||
-          '${git}/bin/git' -C "''${_ROOT_DIR}" branch --show-current ;
-      )"
-      local ref_colour="$(
-        if [ -z "''${is_git}" ] ; then
-          '${coreutils}/bin/printf' 9  ;
-        elif [ \
-          "$(
-            '${coreutils}/bin/printf' '%s\n' "''${git_status}" |
-              '${gnused}/bin/sed' '/^\s*$/d' |
-              '${coreutils}/bin/wc' -l ;
-          )" -eq 0 \
-        ] ; then
-          '${coreutils}/bin/printf' 10 ;
-        elif
-          '${coreutils}/bin/printf' '%s\n' "''${git_status}" |
-            '${gnugrep}/bin/grep' -q '^.\S' ; then
-          '${coreutils}/bin/printf' 9  ;
-        else
-          '${coreutils}/bin/printf' 11 ;
-        fi ;
-      )"
-      local ref_PS1="\[\033[1;38;5;''${ref_colour}m\]$ref\[$('${ncurses}/bin/tput' sgr0)\]"
-
-      # Nix shell hint.
-      local nix_PS1='\[\033[1;38;5;13m\]NIX+QMK\[$('${ncurses}/bin/tput' sgr0)\]'
-
-      # Colour CLI prompt.
-      PS1="\[$('${ncurses}/bin/tput' sgr0)\][ ''${nix_PS1} @ ''${ref_PS1} : ''${path_PS1} ] ''${XC_PS1} > \[$('${ncurses}/bin/tput' sgr0)\]"
+      # CLI prompt.
+      PS1="\[$(${ncurses}/bin/tput sgr0)\][ ''${nix_PS1} @ ''${git_PS1} : ''${path_PS1} ] ''${XC_PS1} > \[$(${ncurses}/bin/tput sgr0)\]"
 
       return "''${XC}"  # Restore the original exit code
     }
+
     PROMPT_COMMAND=_compute_prompt
 
     # Aliases ######################################################################
-    alias ls="'${coreutils}/bin/ls' --color=auto"
-    alias ll="'${coreutils}/bin/ls' --color=auto -lAh"
+
+    # ls
+    alias ls="${coreutils}/bin/ls --color=auto"
+    alias ll="${coreutils}/bin/ls --color=auto -lAh"
 
     # Commands #####################################################################
+
+    #-------------------------------------------------------------------------------
+    # Initialise the current working directory.
+    #-------------------------------------------------------------------------------
     init() {
       local XC=0
 
-      (
-        '${git}/bin/git' -C "''${_ROOT_DIR}" rev-parse --git-dir >/dev/null 2>&1 && \
-        [ "$('${git}/bin/git' -C "''${_ROOT_DIR}" rev-parse --show-toplevel)" -ef "''${_ROOT_DIR}" ] ;
-      ) || (
-        '${coreutils}/bin/printf' \
-          '# \033[3mInitialise repo\033[0m ------------------------------------------------------------------------------------- #\n' ;
-        (
-          '${git}/bin/git' -C "''${_ROOT_DIR}" init -b main
-        ) || XC="$(( "''${XC}" + 0x01 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
-      )
+      local KEYMAP_ID
+      KEYMAP_ID="$(_uuid)"
 
-      [ -d "''${_ROOT_DIR}/QMK/" ] && (
-        '${coreutils}/bin/printf' \
-          '# \033[3mClean up submodule\033[0m ---------------------------------------------------------------------------------- #\n' ;
+      if ! _is_git '${toString ./.}' ; then
+        _print_header 'Initialise repo'
         (
-          '${coreutils}/bin/rm' -rf -- "''${_ROOT_DIR}/QMK/" &&
-            '${coreutils}/bin/printf' "Submodule path 'QMK': deleted\n" ;
-        ) || XC="$(( "''${XC}" + 0x02 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
-      )
-
-      (
-        '${git}/bin/git' -C "''${_ROOT_DIR}" config --file .gitmodules --get-regexp path |
-          '${gawk}/bin/awk' '{ print $2 }' |
-          '${gnugrep}/bin/grep' -q '^QMK$' ;
-      ) || (
-        '${coreutils}/bin/printf' \
-          '# \033[3mAdd QMK submodule\033[0m ----------------------------------------------------------------------------------- #\n' ;
-        (
-          '${git}/bin/git' -C "''${_ROOT_DIR}" submodule add --branch master -- 'https://github.com/qmk/qmk_firmware/' QMK ;
-        ) || XC="$(( "''${XC}" + 0x04 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
-      )
-
-      if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mInit submodule\033[0m -------------------------------------------------------------------------------------- #\n' ;
-        (
-          '${git}/bin/git' -C "''${_ROOT_DIR}" submodule update --init --recursive --progress ;
-        ) || XC="$(( "''${XC}" + 0x08 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
+          ${git}/bin/git -C '${toString ./.}' init -b main ;
+        ) || XC="$(( "''${XC}" + 0x01 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mClean up workspace\033[0m ---------------------------------------------------------------------------------- #\n' ;
-      (
-        '${coreutils}/bin/rm' -rf -- "''${_ROOT_DIR}/keymap/" ;
-      ) || XC="$(( "''${XC}" + 0x10 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+      if [ -d '${toString ./QMK}' ] ; then
+        _print_header 'Clean up submodule'
+        (
+          _clean_qmk ;
+        ) || XC="$(( "''${XC}" + 0x02 ))"
+        ${coreutils}/bin/printf '\n'
+      fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mCopy default keymap\033[0m --------------------------------------------------------------------------------- #\n' ;
+      if ! (
+        ${git}/bin/git -C '${toString ./.}' config --file .gitmodules --get-regexp path |
+          ${gawk}/bin/awk '{ print $2 }' |
+          ${gnugrep}/bin/grep -q '^QMK$' ;
+      ) ; then
+        _print_header 'Add submodule'
+        (
+          ${git}/bin/git -C '${toString ./.}' submodule add --branch master -- \
+            'https://github.com/qmk/qmk_firmware/' QMK ;
+        ) || XC="$(( "''${XC}" + 0x04 ))"
+        ${coreutils}/bin/printf '\n'
+      fi
+
+      if [ "''${XC}" -eq 0 ] ; then
+        _print_header 'Init submodule'
+        (
+          ${git}/bin/git -C '${toString ./.}' submodule update --init --recursive --progress ;
+        ) || XC="$(( "''${XC}" + 0x08 ))"
+        ${coreutils}/bin/printf '\n'
+      fi
+
+      _print_header 'Clean up workspace'
       (
-        '${coreutils}/bin/cp' -rf -- "''${_ROOT_DIR}/QMK/keyboards/${KEYBOARD}/keymaps/default" "''${_ROOT_DIR}/keymap" ;
-      ) || XC="$(( "''${XC}" + 0x20 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        ${coreutils}/bin/rm -rf -- '${toString ./keymap}' ;
+      ) || XC="$(( "''${XC}" + 0x10 ))"
+      ${coreutils}/bin/printf '\n'
+
+      _print_header 'Init workspace'
+      (
+        _qmk_exec "new-keymap -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" &&
+        _keymap_path |
+          ${findutils}/bin/xargs -I{} ${bash}/bin/bash -c "
+            ${coreutils}/bin/rm -rf -- '${toString ./keymap}' &&
+            ${coreutils}/bin/cp -rf -- '{}' '${toString ./keymap}' ;
+          " ;
+      ) || XC="$(( "''${XC}" + 0x20 ))"
+      ${coreutils}/bin/printf '\n'
+
+      _print_header 'Clean up submodule'
+      (
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x40 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Set up the current machine to ensure other commands work as expected.
+    # May require a reboot.
+    #-------------------------------------------------------------------------------
     setup() {
       local XC=0
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mSet up udev rules\033[0m ----------------------------------------------------------------------------------- #\n' ;
-      (
-        '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
-          $(
-            (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas bash') ||
-              (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo bash') ||
-              (${coreutils}/bin/printf 'su')
-          ) -c "
-            '${coreutils}/bin/mkdir' -p '/etc/udev/rules.d/' &&
-            '${coreutils}/bin/cp' -rf \"''${_ROOT_DIR}/QMK/util/udev/\"* '/etc/udev/rules.d/'
-          " &&
-          '${coreutils}/bin/printf' '/etc/udev/rules.d/ set up successfully\n' ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+      if ! _can_root ; then
+        ${coreutils}/bin/printf '\033[33mWARNING: No root access, skipping setup.\033[0m\n'
+        return 0
+      fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mResize /run/user/$UID\033[0m ------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Set up udev rules'
       (
-        '${coreutils}/bin/printf' 'Set up /etc/udev/rules.d/\n' &&
-          $(
-            (${which}/bin/which doas >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'doas sh') ||
-              (${which}/bin/which sudo >/dev/null 2>/dev/null && ${coreutils}/bin/printf 'sudo sh') ||
-              (${coreutils}/bin/printf 'su')
-          ) -c "
-            '${coreutils}/bin/mkdir' -p '/etc/systemd/logind.conf.d/' &&
-            '${coreutils}/bin/printf' '[Login]\nRuntimeDirectorySize=99%%\n' >'/etc/systemd/logind.conf.d/runtime_directory_size.conf'
-          " &&
-          '${coreutils}/bin/printf' '/run/user/$UID resized successfully\n' ;
-      ) || XC="$(( "''${XC}" + 0x02 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _root_exec "
+          ${coreutils}/bin/mkdir -p '/etc/udev/rules.d/' &&
+          ${coreutils}/bin/cp -rf '${toString ./QMK/util/udev}/'* '/etc/udev/rules.d/' ;
+        " && ${coreutils}/bin/printf '/etc/udev/rules.d/ set up successfully\n' ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
+
+      # shellcheck disable=SC2016
+      _print_header 'Resize /run/user/$UID'
+      # shellcheck disable=SC2016
+      (
+        _root_exec "
+          ${coreutils}/bin/mkdir -p '/etc/systemd/logind.conf.d/' &&
+          ${coreutils}/bin/printf '[Login]\nRuntimeDirectorySize=99%%\n' >'/etc/systemd/logind.conf.d/runtime_directory_size.conf'
+        " && ${coreutils}/bin/printf '/run/user/$UID resized successfully\n' ;
+      ) || XC="$(( "''${XC}" + 0x02 ))"
+      ${coreutils}/bin/printf '\n'
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mFinish\033[0m ---------------------------------------------------------------------------------------------- #\n' ;
-        '${coreutils}/bin/printf' '\033[3mSet up complete.\nPlease reboot your system to ensure that changes take effect.\033[0m\n\n'
+        _print_header 'Finish'
+        ${coreutils}/bin/printf '\033[3mSet up complete.\nPlease reboot your system to ensure that changes take effect.\033[0m\n\n'
       fi
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Update the QMK submodule.
+    #-------------------------------------------------------------------------------
     update() {
       local XC=0
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mUpdate submodules\033[0m ----------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Update submodule'
       (
-        '${git}/bin/git' -C "''${_ROOT_DIR}" submodule update --remote --progress ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        ${git}/bin/git -C '${toString ./.}' submodule update --remote --progress -- '${toString ./QMK}' ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Clean up the working directory.
+    #-------------------------------------------------------------------------------
     clean() {
       local XC=0
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mClean workspace\033[0m ------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Clean up submodule'
       (
-        '${git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df &&
-          '${git}/bin/git' -C "''${_ROOT_DIR}" clean -dfX ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
+
+      _print_header 'Clean up repo'
+      (
+        ${git}/bin/git -C '${toString ./.}' clean -dfX ;
+      ) || XC="$(( "''${XC}" + 0x02 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Lint the source code.
+    #-------------------------------------------------------------------------------
     lint() {
       local XC=0
 
-      local KEYMAP_ID="$('${coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+      local KEYMAP_ID
+      KEYMAP_ID="$(_uuid)"
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Clean up submodule'
       (
-        '${coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
+
+      _print_header 'Link keymap'
+      (
+        _link_keymap "''${KEYMAP_ID}" ;
+      ) || XC="$(( "''${XC}" + 0x02 ))"
+      ${coreutils}/bin/printf '\n'
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mQMK linting\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+        _print_header 'Lint code'
         (
-          cd "''${_ROOT_DIR}/QMK" &&
-            '${nix}/bin/nix-shell' --pure --run "qmk lint --strict -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
-        ) || XC="$(( "''${XC}" + 0x02 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
+          _qmk_exec "lint --strict -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
+        ) || XC="$(( "''${XC}" + 0x04 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mUnlink keymap\033[0m --------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Unlink keymap'
       (
-        '${git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df ;
-      ) || XC="$(( "''${XC}" + 0x04 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x08 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Format the source code.
+    #-------------------------------------------------------------------------------
     format() {
       local XC=0
 
-      local KEYMAP_ID="$('${coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+      local KEYMAP_ID
+      KEYMAP_ID="$(_uuid)"
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Clean up submodule'
       (
-        '${coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
+
+      _print_header 'Link keymap'
+      (
+        _link_keymap "''${KEYMAP_ID}" ;
+      ) || XC="$(( "''${XC}" + 0x02 ))"
+      ${coreutils}/bin/printf '\n'
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mFormat code\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+        _print_header 'Format code'
         (
-          cd "''${_ROOT_DIR}/QMK" &&
-            '${nix}/bin/nix-shell' --pure --run "${clang-tools}/bin/clang-format -i --verbose \$(
-              ${findutils}/bin/find -L 'keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" -type f -regextype awk -regex '.+\.(h|hpp|c|cpp|inc)'
-            )" ;
-        ) || XC="$(( "''${XC}" + 0x02 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
+          cd '${toString ./QMK}' &&
+          ${nix}/bin/nix-shell --pure --run "
+            ${findutils}/bin/find -L '$(_keymap_path)' -type f -regextype awk -regex '.+\.(h|hpp|c|cpp|inc)' |
+              ${findutils}/bin/xargs ${clang-tools}/bin/clang-format -i --verbose
+          " ;
+        ) || XC="$(( "''${XC}" + 0x04 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mUnlink keymap\033[0m --------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Unlink keymap'
       (
-        '${git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df ;
-      ) || XC="$(( "''${XC}" + 0x04 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x08 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Compile the source code.
+    #-------------------------------------------------------------------------------
     compile() {
       local XC=0
 
-      local KEYMAP_ID="$('${coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+      local KEYMAP_ID
+      KEYMAP_ID="$(_uuid)"
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mClean up old builds\033[0m --------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Clean up submodule'
       (
-        cd "''${_ROOT_DIR}/QMK" &&
-          '${nix}/bin/nix-shell' --pure --run 'qmk clean' &&
-          '${coreutils}/bin/printf' 'Cleaned QMK/.build\n' ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk &&
+        _qmk_exec "clean" ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Link keymap'
       (
-        '${coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
-      ) || XC="$(( "''${XC}" + 0x02 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _link_keymap "''${KEYMAP_ID}" ;
+      ) || XC="$(( "''${XC}" + 0x02 ))"
+      ${coreutils}/bin/printf '\n'
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mCompile\033[0m --------------------------------------------------------------------------------------------- #\n' ;
+        _print_header 'Compile code'
         (
-          cd "''${_ROOT_DIR}/QMK" &&
-            '${nix}/bin/nix-shell' --pure --run "qmk compile -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
-        ) || XC="$(( "''${XC}" + 0x04 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
+          _qmk_exec "compile -j $(${coreutils}/bin/nproc --all) -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
+        ) || XC="$(( "''${XC}" + 0x04 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mExtract HEX file\033[0m ------------------------------------------------------------------------------------ #\n' ;
+        _print_header 'Extract HEX file'
         (
-          '${coreutils}/bin/mkdir' -p "''${_ROOT_DIR}/.build" &&
-            '${findutils}/bin/find' "''${_ROOT_DIR}/QMK/.build" -type f -regextype awk -iregex '^.*\.(hex|bin)$' |
-              '${coreutils}/bin/head' -1 |
-              '${findutils}/bin/xargs' -i cp -f -- '{}' "''${_ROOT_DIR}/.build/firmware.hex" &&
-            '${coreutils}/bin/printf' 'Extracted .build/firmware.hex\n' ;
-        ) || XC="$(( "''${XC}" + 0x08 ))" ;
-        '${coreutils}/bin/printf' '\n'
+          ${coreutils}/bin/mkdir -p '${toString ./.build}' &&
+          ${findutils}/bin/find '${toString ./QMK/.build}' -type f -regextype awk -iregex '^.*\.(hex|bin)$' |
+            ${coreutils}/bin/head -1 |
+            ${findutils}/bin/xargs -I{} cp -f -- '{}' '${toString ./.build/firmware.hex}' &&
+          ${coreutils}/bin/printf 'Extracted .build/firmware.hex\n' ;
+        ) || XC="$(( "''${XC}" + 0x08 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mUnlink keymap\033[0m --------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Unlink keymap'
       (
-        '${git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df ;
-      ) || XC="$(( "''${XC}" + 0x10 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x10 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Flash a keyboard.
+    #-------------------------------------------------------------------------------
     flash() {
       local XC=0
 
-      local KEYMAP_ID="$('${coreutils}/bin/cat' /proc/sys/kernel/random/uuid)"
+      local KEYMAP_ID
+      KEYMAP_ID="$(_uuid)"
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mClean up old builds\033[0m --------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Clean up submodule'
       (
-        cd "''${_ROOT_DIR}/QMK" &&
-          '${nix}/bin/nix-shell' --pure --run 'qmk clean' &&
-          '${coreutils}/bin/printf' 'Cleaned QMK/.build\n' ;
-      ) || XC="$(( "''${XC}" + 0x01 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk &&
+        _qmk_exec "clean" ;
+      ) || XC="$(( "''${XC}" + 0x01 ))"
+      ${coreutils}/bin/printf '\n'
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mLink keymap\033[0m ----------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Link keymap'
       (
-        '${coreutils}/bin/rm' -f -- "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/ln' -sf "''${_ROOT_DIR}/keymap" "''${_ROOT_DIR}"/'QMK/keyboards/${KEYBOARD}/keymaps'/"''${KEYMAP_ID}" &&
-          '${coreutils}/bin/printf' 'Linked QMK/keyboards/${KEYBOARD}/keymaps/%s\n' "''${KEYMAP_ID}" ;
-      ) || XC="$(( "''${XC}" + 0x02 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _link_keymap "''${KEYMAP_ID}" ;
+      ) || XC="$(( "''${XC}" + 0x02 ))"
+      ${coreutils}/bin/printf '\n'
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mCompile\033[0m --------------------------------------------------------------------------------------------- #\n' ;
+        _print_header 'Compile code'
         (
-          cd "''${_ROOT_DIR}/QMK" &&
-            '${nix}/bin/nix-shell' --pure --run "qmk compile -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
-        ) || XC="$(( "''${XC}" + 0x04 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
+          _qmk_exec "compile -j $(${coreutils}/bin/nproc --all) -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
+        ) || XC="$(( "''${XC}" + 0x04 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
       if [ "''${XC}" -eq 0 ] ; then
-        '${coreutils}/bin/printf' \
-          '# \033[3mFlash\033[0m ----------------------------------------------------------------------------------------------- #\n' ;
+        _print_header 'Flash keyboard'
         (
-          cd "''${_ROOT_DIR}/QMK" &&
-            '${nix}/bin/nix-shell' --pure --run "qmk flash -j '${builtins.toString PARALLEL}' -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
-        ) || XC="$(( "''${XC}" + 0x08 ))" ;
-        '${coreutils}/bin/printf' '\n' ;
+          _qmk_exec "flash -kb '${KEYBOARD}' -km ''\'''${KEYMAP_ID}'" ;
+        ) || XC="$(( "''${XC}" + 0x08 ))"
+        ${coreutils}/bin/printf '\n'
       fi
 
-      '${coreutils}/bin/printf' \
-        '# \033[3mUnlink keymap\033[0m --------------------------------------------------------------------------------------- #\n' ;
+      _print_header 'Unlink keymap'
       (
-        '${git}/bin/git' -C "''${_ROOT_DIR}/QMK" clean -df ;
-      ) || XC="$(( "''${XC}" + 0x10 ))" ;
-      '${coreutils}/bin/printf' '\n' ;
+        _clean_qmk ;
+      ) || XC="$(( "''${XC}" + 0x10 ))"
+      ${coreutils}/bin/printf '\n'
 
       return "''${XC}"
     }
 
+    #-------------------------------------------------------------------------------
+    # Show a man-like help page.
+    #-------------------------------------------------------------------------------
     help() {
-      '${coreutils}/bin/cat' <<EOF | MANPAGER="''${MANPAGER:-''${PAGER:-${most}/bin/most -s}}" '${man}/bin/man' -l - 2>/dev/null
+      ${coreutils}/bin/cat <<EOF | MANPAGER="''${MANPAGER:-''${PAGER:-${most}/bin/most -s}}" ${man}/bin/man -l - 2>/dev/null
     .TH "NIX+QMK" "1" "" "" "Nix+QMK toolbox"
     .\----------------------------------------------------------------------------\.
     .SH NAME
@@ -581,19 +823,23 @@ pkgs.mkShell {
       return 0
     }
 
+    #-------------------------------------------------------------------------------
+    # Show welcome screen.
+    #-------------------------------------------------------------------------------
     welcome() {
-      '${coreutils}/bin/printf' '\033[0m     , , , , , ,\n'
-      '${coreutils}/bin/printf' '\033[0m   \033[1;30m.-------------.\033[0m\n'
-      '${coreutils}/bin/printf' '\033[0m - \033[1;30m|             | \033[0m-   \033[3mWelcome to this (unofficial) \033[1mNix+QMK toolbox\033[0;3m.\033[0m\n'
-      '${coreutils}/bin/printf' '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-\n'
-      '${coreutils}/bin/printf' '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-   \033[3mAn opinionated set of scripts for standalone QMK keymaps\033[0m\n'
-      '${coreutils}/bin/printf' '\033[0m - \033[1;30m|   \033[0;1m|__|__|\033[0;1;30m   | \033[0m-\n'
-      '${coreutils}/bin/printf' '\033[0m - \033[1;30m|      \033[0;1m|\033[0;1;30m      | \033[0m-\n'
-      '${coreutils}/bin/printf' '\033[0m - \033[1;30m|_____________| \033[0m-\n'
-      '${coreutils}/bin/printf' '\033[0m     , , , , , ,\n'
-      '${coreutils}/bin/printf' '\n'
-      '${coreutils}/bin/printf' '\033[0m\033[3mType `help` to get info on available commands.\033[0m\n'
-      '${coreutils}/bin/printf' '\n'
+      ${coreutils}/bin/printf '\033[0m     , , , , , ,\n'
+      ${coreutils}/bin/printf '\033[0m   \033[1;30m.-------------.\033[0m\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|             | \033[0m-   \033[3mWelcome to this (unofficial) \033[1mNix+QMK toolbox\033[0;3m.\033[0m\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|  |  |\033[0;1;30m   | \033[0m-   \033[3mAn opinionated set of scripts for standalone QMK keymaps\033[0m\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|   \033[0;1m|__|__|\033[0;1;30m   | \033[0m-\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|      \033[0;1m|\033[0;1;30m      | \033[0m-\n'
+      ${coreutils}/bin/printf '\033[0m - \033[1;30m|_____________| \033[0m-\n'
+      ${coreutils}/bin/printf '\033[0m     , , , , , ,\n'
+      ${coreutils}/bin/printf '\n'
+      # shellcheck disable=SC2016
+      ${coreutils}/bin/printf '\033[0m\033[3mType `help` to get info on available commands.\033[0m\n'
+      ${coreutils}/bin/printf '\n'
 
       return 0
     }

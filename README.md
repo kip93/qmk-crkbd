@@ -39,7 +39,7 @@ First, you'll need to acquire the base components for the build. The board schem
 bought mine from [Keyhive](https://keyhive.xyz/corne) in a nice kit containing most of the basics. To that I had
 to add in the MCUs, a TRRS cable, 42 key switches and keycaps, and a USB-A to USB-C cable.
 
-Once you have everything you just have to put it all together. It is intuitive enough, but there is also a
+Once you have everything, you just have to put it all together. It is intuitive enough, but there is also a
 [handy-dandy build guide](https://github.com/foostan/crkbd/blob/master/corne-cherry/doc/v3/buildguide_en.md) that
 you can follow if needed.
 

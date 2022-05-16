@@ -11,3 +11,5 @@ nixos
 nixpkgs
 ortholinear
 QMK
+VSCode
+VSCodium
