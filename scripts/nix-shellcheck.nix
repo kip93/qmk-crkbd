@@ -4,7 +4,7 @@ with pkgs; writeScript "nix-shellcheck" ''
   set -eu
   # shellcheck disable=SC2016
   ${findutils}/bin/find '${toString ../shell.nix}' '${toString ./.}' -type f -name '*.nix' |
-    ${findutils}/bin/xargs -I{} sh -c '
+    ${findutils}/bin/xargs -I{} ${bash}/bin/bash -c '
       set -eu
       if [ "$(${nix}/bin/nix-instantiate --eval -E "builtins.hasAttr \"shellHook\" ((import <nixpkgs> { }).callPackage \"{}\" { })")" == "true" ] ; then
         ${nix}/bin/nix-build "{}" --no-out-link -A inputDerivation >/dev/null
