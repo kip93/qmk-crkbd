@@ -25,7 +25,7 @@ with pkgs; writeScript "nix-logic" ''
       trap '"'"'
         XC=$?;
         ${coreutils}/bin/printf "\033[3;%sm%s\033[0m\n" "$([ ''${XC} -eq 0 ] && ${coreutils}/bin/printf 32 || ${coreutils}/bin/printf 31)" "{}";
-        [ ''${XC} -ne 0 ] && ${coreutils}/bin/cat "''${OUTPUT}" >&2;
+        [ -e "''${OUTPUT}" ] && ${coreutils}/bin/cat "''${OUTPUT}" >&2;
         ${coreutils}/bin/rm -rf -- "''${WORKDIR}";
         exit ''${XC};
       '"'"' EXIT INT QUIT TERM
