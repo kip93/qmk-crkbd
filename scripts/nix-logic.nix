@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> { } }:  # TODO Uncomment some stuff
+{ pkgs ? import <nixpkgs> { } }: # TODO Uncomment some stuff
 with pkgs; writeScript "nix-logic" ''
   #!${bash}/bin/bash
   set -eu

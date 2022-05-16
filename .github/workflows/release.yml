@@ -99,4 +99,4 @@ jobs:
 
       - name: Push to cache
         run: |
-          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{}' kip93
+          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{} kip93'

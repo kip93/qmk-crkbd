@@ -73,7 +73,8 @@ jobs:
         id: nix-logic
         working-directory: ./repo
         run: |
-          nix-build scripts/nix-logic.nix | TMPDIR=../tmp xargs sh -c
+          mkdir -p ../tmp
+          nix-build scripts/nix-logic.nix | TMPDIR="$(realpath ../tmp)" xargs sh -c
         continue-on-error: true
 
       - name: "QMK: format"
@@ -104,4 +105,4 @@ jobs:
       - name: Push to cache
         working-directory: ./repo
         run: |
-          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{}' kip93
+          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{} kip93'
