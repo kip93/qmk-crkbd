@@ -79,7 +79,7 @@
     // Nix
     "nix.enableLanguageServer": true,
     "nixEnvSelector.suggestion": true,
-    "nixEnvSelector.nixFile": "${workspaceFolder}/env.nix",
+    "nixEnvSelector.nixFile": "${workspaceRoot}/env.nix",
 
     // Shell
     "shellcheck.enable": true,
