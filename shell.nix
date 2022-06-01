@@ -483,7 +483,8 @@ pkgs.mkShell {
 
       _print_header 'Update submodule'
       (
-        ${git}/bin/git -C '${toString ./.}' submodule update --remote --progress -- '${toString ./QMK}' ;
+        ${git}/bin/git -C '${toString ./.}' submodule update --remote -- '${toString ./QMK}' &&
+        ${git}/bin/git -C '${toString ./QMK}' submodule update --force --recursive ;
       ) || XC="$(( "''${XC}" + 0x01 ))"
       ${coreutils}/bin/printf '\n'
 
