@@ -28,6 +28,8 @@ jobs:
 
       - name: Set up Nix
         uses: ./.github/actions/nix
+        with:
+          CACHE_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Compile
         run: |

@@ -50,11 +50,11 @@ runs:
     - name: Publish release
       uses: softprops/action-gh-release@v1
       with:
-        name: ${{ steps.tag.outputs.tag }}
-        tag_name: ${{ steps.tag.outputs.tag }}
+        name: "${{ steps.tag.outputs.tag }}"
+        tag_name: "${{ steps.tag.outputs.tag }}"
         body_path: .build/CHANGELOG.md
 
-        prerelease: ${{ github.ref != 'refs/heads/main' }}
+        prerelease: "${{ github.ref != 'refs/heads/main' }}"
 
         files: |
           ./.build/firmware.hex

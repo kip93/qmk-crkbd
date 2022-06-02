@@ -20,6 +20,8 @@ jobs:
 
       - name: Set up
         uses: ./.github/actions/nix
+        with:
+          CACHE_TOKEN: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
       - name: Update QMK
         run: |

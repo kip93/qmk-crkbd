@@ -1,6 +1,11 @@
 name: "Set up Nix + Cache"
 description: ""
 
+inputs:
+  CACHE_TOKEN:
+    description: ""
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -13,7 +18,7 @@ runs:
         uses: cachix/cachix-action@v10
         with:
           name: kip93
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          authToken: "${{ inputs.CACHE_TOKEN }}"
           extraPullNames: nix-community
           skipPush: true
 
