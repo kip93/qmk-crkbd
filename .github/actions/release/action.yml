@@ -1,0 +1,61 @@
+name: "Tag & release"
+description: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create tag
+      shell: sh
+      id: tag
+      run: |
+        TAG="$(date '+v%y.%m.%d.%H%M%S')${{ github.ref != 'refs/heads/main' && '-RC' || '' }}"
+        git tag "${TAG}"
+        git push --tags
+        printf 'Tagged: %s -> %s.\n\n' "$(git rev-parse HEAD)" "${TAG}"
+
+        printf '::set-output name=tag::%s\n' "${TAG}"
+
+    - name: Create changelog
+      shell: sh
+      run: |
+        printf 'Reference:\n'
+        printf '%s.\n\n' "${GITHUB_REF}"
+
+        printf 'Latest tags:\n'
+        git fetch --tags
+        git tag -l --sort=-version:refname | head -10
+        printf '\n'
+        printf 'Latest full release tags:\n'
+        git tag -l --sort=-version:refname | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | head -10
+        printf '\n'
+
+        printf 'Changelog:\n'
+        if [ "${GITHUB_REF_NAME}" = 'main' ] && [ "$(git tag -l | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | wc -l)" -ge 2 ] ; then
+          LAST_TAG="$(git tag -l --sort=-version:refname | grep -P '^v\d{2}\.\d{2}\.\d{2}\.\d{6}$' | sed -n '2{p;q;}')"
+        elif [ "${GITHUB_REF_NAME}" != 'main' ] && [ "$(git tag -l | wc -l)" -ge 2 ] ; then
+          LAST_TAG="$(git tag -l --sort=-version:refname | sed -n '2{p;q;}')"
+        else
+          LAST_TAG="$(git rev-list --max-parents=0 HEAD)"
+        fi
+        printf '%s...%s\n\n' "${{ steps.tag.outputs.tag }}" "${LAST_TAG}"
+
+        printf '[Full changelog]' >>'.build/CHANGELOG.md'
+        printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
+        printf '%s...%s)\n\n' "${LAST_TAG}" "${{ steps.tag.outputs.tag }}" >>'.build/CHANGELOG.md'
+
+        printf '[Commits to %s since this release]' "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
+        printf '(%s/%s/compare/' "${GITHUB_SERVER_URL}" "${GITHUB_REPOSITORY}" >>'.build/CHANGELOG.md'
+        printf '%s...%s)\n\n' "${{ steps.tag.outputs.tag }}" "${GITHUB_REF_NAME}" >>'.build/CHANGELOG.md'
+
+    - name: Publish release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: ${{ steps.tag.outputs.tag }}
+        tag_name: ${{ steps.tag.outputs.tag }}
+        body_path: .build/CHANGELOG.md
+
+        prerelease: ${{ github.ref != 'refs/heads/main' }}
+
+        files: |
+          ./.build/firmware.hex
+        fail_on_unmatched_files: true

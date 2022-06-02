@@ -4,107 +4,132 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'keymap/**'
-      - 'QMK'
-      - '**/*.nix'
-      - '.github/workflows/check.yml'
+      - "keymap/**"
+      - "QMK"
+      - "**/*.nix"
+      - ".github/actions/nix/**"
+      - ".github/workflows/check.yml"
   workflow_dispatch: {}
 
 jobs:
-  check:
-    name: Check code quality
+  nix-format:
+    name: "Nix: format"
     runs-on: ubuntu-latest
-    timeout-minutes: 1440  # 1 day
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: "Nix: set up"
+        uses: ./.github/actions/nix
+
+      - name: "Nix: format"
+        run: |
+          nix-build scripts/nix-format.nix | xargs sh -c
+
+  nix-lint:
+    name: "Nix: lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: "Nix: set up"
+        uses: ./.github/actions/nix
+
+      - name: "Nix: lint"
+        run: |
+          nix-build scripts/nix-lint.nix | xargs sh -c
+
+  nix-shellcheck:
+    name: "Nix: shellcheck"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: "Nix: set up"
+        uses: ./.github/actions/nix
+
+      - name: "Nix: shellcheck"
+        run: |
+          nix-build scripts/nix-shellcheck.nix | xargs sh -c
+
+  nix-vulnerabilities:
+    name: "Nix: vulnerabilities"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: "Nix: set up"
+        uses: ./.github/actions/nix
+
+      - name: "Nix: vulnerabilities"
+        run: |
+          nix-build scripts/nix-vulnerabilities.nix | xargs sh -c
+
+  nix-logic:
+    name: "Nix: logic"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
           submodules: recursive
           path: ./repo
 
       - name: "Nix: set up"
-        uses: cachix/install-nix-action@v15
-        with:
-          nix_path: nixpkgs=channel:nixpkgs-unstable
-          extra_nix_config: |
-            experimental-features = nix-command
-
-      - name: "Nix: cache set up"
-        uses: cachix/cachix-action@v10
-        with:
-          name: kip93
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          extraPullNames: nix-community
-          skipPush: true
-
-      - name: "Nix: version"
-        run: |
-          nix-instantiate --eval -E '"nixpkgs version: ${(import <nixpkgs> {}).lib.version}"'
-          nix-env --version
-
-      - name: "Nix: format"
-        id: nix-format
-        working-directory: ./repo
-        run: |
-          nix-build scripts/nix-format.nix | xargs sh -c
-        continue-on-error: true
-
-      - name: "Nix: lint"
-        id: nix-lint
-        working-directory: ./repo
-        run: |
-          nix-build scripts/nix-lint.nix | xargs sh -c
-        continue-on-error: true
-
-      - name: "Nix: shellcheck"
-        id: nix-shellcheck
-        working-directory: ./repo
-        run: |
-          nix-build scripts/nix-shellcheck.nix | xargs sh -c
-        continue-on-error: true
-
-      - name: "Nix: vulnerabilities"
-        id: nix-vulnerabilities
-        working-directory: ./repo
-        run: |
-          nix-build scripts/nix-vulnerabilities.nix | xargs sh -c
-        continue-on-error: true
+        uses: ./repo/.github/actions/nix
 
       - name: "Nix: logic"
-        id: nix-logic
         working-directory: ./repo
         run: |
           mkdir -p ../tmp
           nix-build scripts/nix-logic.nix | TMPDIR="$(realpath ../tmp)" xargs sh -c
-        continue-on-error: true
-        timeout-minutes: 1440  # 1 day
+
+  qmk-format:
+    name: "QMK: format"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: "Nix: set up"
+        uses: ./.github/actions/nix
 
       - name: "QMK: format"
-        id: qmk-format
-        working-directory: ./repo
         run: |
           nix-build scripts/qmk-format.nix | xargs sh -c
-        continue-on-error: true
+
+  qmk-lint:
+    name: "QMK: lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: "Nix: set up"
+        uses: ./.github/actions/nix
 
       - name: "QMK: lint"
-        id: qmk-lint
-        working-directory: ./repo
         run: |
           nix-build scripts/qmk-lint.nix | xargs sh -c
-        continue-on-error: true
-
-      - name: Check for failures
-        if: |
-          steps.nix-format.outcome          != 'success' ||
-          steps.nix-lint.outcome            != 'success' ||
-          steps.nix-shellcheck.outcome      != 'success' ||
-          steps.nix-vulnerabilities.outcome != 'success' ||
-          steps.nix-logic.outcome           != 'success' ||
-          steps.qmk-format.outcome          != 'success' ||
-          steps.qmk-lint.outcome            != 'success'
-        run: exit 1
-
-      - name: Push to cache
-        working-directory: ./repo
-        run: |
-          nix-build scripts/nix-cache.nix | xargs -I{} sh -c '{} kip93'
