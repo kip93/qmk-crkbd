@@ -61,8 +61,8 @@ automagically. This allows to easily manage the unconventional setup under nearl
 
  * Don't restart when splitting apart (or at least don't lose the state).
  * Custom lighting depending on current layer.
-   * Not doable just yet it seems. See [#6277](https://github.com/qmk/qmk_firmware/issues/6277) &
-     [#8789](https://github.com/qmk/qmk_firmware/issues/8789).
+   * ~~Not doable just yet it seems. See [#6277](https://github.com/qmk/qmk_firmware/issues/6277) &
+     [#8789](https://github.com/qmk/qmk_firmware/issues/8789)~~ Now these issues are closed, should retry it.
 
 
 ## Licences
