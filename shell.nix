@@ -249,16 +249,10 @@ pkgs.mkShell {
       # Assign a colour to the "cleaniness" of the repo
       local colour
       colour="$(
-        if _is_git '${toString ./.}' ; then
+        if ! _is_git '${toString ./.}' ; then
           # No repo -> red
           ${coreutils}/bin/printf 9 ;
-        elif [ \
-          "$(
-            ${coreutils}/bin/printf '%s\n' "''${git_status}" |
-              ${gnused}/bin/sed '/^\s*$/d' |
-              ${coreutils}/bin/wc -l ;
-          )" -eq 0 \
-        ] ; then
+        elif [ -z "''${git_status}" ] ; then
           # Clean repo -> green
           ${coreutils}/bin/printf 10 ;
         elif
